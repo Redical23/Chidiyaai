@@ -5,6 +5,16 @@ import { useState, useEffect, useRef } from "react";
 import { RollingTextList } from "@/components/ui/rolling-list";
 import { MagneticText } from "@/components/ui/morphing-cursor";
 import { RatingInteraction } from "@/components/ui/emoji-rating";
+import Navbar from "@/components/ui/navbar";
+import { useIsMobile } from "@/hooks/useIsMobile";
+
+// Menu items for navbar
+const navMenus = [
+  { id: 1, title: "Features", url: "#features", dropdown: false },
+  { id: 2, title: "Pricing", url: "#pricing", dropdown: false },
+  { id: 3, title: "Reviews", url: "#testimonials", dropdown: false },
+  { id: 4, title: "Sell on ChidiyaAI", url: "/supplier", dropdown: false, highlight: true },
+];
 
 // Animated counter component
 function AnimatedCounter({ end, duration = 2000, suffix = "" }) {
@@ -46,6 +56,7 @@ function AnimatedCounter({ end, duration = 2000, suffix = "" }) {
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
+  const isMobile = useIsMobile();
 
   // Partner brands (placeholder names)
   const partners = ["TechCorp", "StyleHub", "GreenMart", "FastTrade", "PrimeBiz", "MaxSupply"];
@@ -53,102 +64,73 @@ export default function Home() {
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", color: "#0f172a" }}>
       {/* Navbar */}
-      <nav style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 100,
-        backgroundColor: "rgba(255,255,255,0.95)",
-        backdropFilter: "blur(10px)",
-        borderBottom: "1px solid #e2e8f0",
-        padding: "0 24px",
-        height: "64px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between"
-      }}>
-        <Link href="/" style={{ fontWeight: "bold", fontSize: "20px", color: "#0f172a", textDecoration: "none" }}>
-          Chidiya<span style={{ color: "#3b82f6" }}>AI</span>
-        </Link>
-        <div style={{ display: "flex", gap: "32px", alignItems: "center" }}>
-          <Link href="#features" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Features</Link>
-          <Link href="#pricing" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Pricing</Link>
-          <Link href="#testimonials" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Reviews</Link>
-        </div>
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          <Link href="/supplier" style={{
-            color: "#3b82f6",
-            textDecoration: "none",
-            fontSize: "14px",
-            fontWeight: "500"
-          }}>
-            Sell on ChidiyaAI
-          </Link>
-          <Link href="/auth/signin" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>
-            Sign in
-          </Link>
-          <Link href="/onboarding" style={{
-            backgroundColor: "#0f172a",
-            color: "white",
-            padding: "10px 20px",
-            borderRadius: "8px",
-            textDecoration: "none",
-            fontSize: "14px",
-            fontWeight: "500"
-          }}>
-            Try for free
-          </Link>
-        </div>
-      </nav>
+      <Navbar menus={navMenus} />
 
       {/* Hero Section with Light Gradient */}
       <section style={{
-        paddingTop: "120px",
-        paddingBottom: "60px",
+        paddingTop: isMobile ? "80px" : "120px",
+        paddingBottom: isMobile ? "40px" : "60px",
+        paddingLeft: isMobile ? "16px" : "24px",
+        paddingRight: isMobile ? "16px" : "24px",
         background: "linear-gradient(180deg, #f0f7ff 0%, #e8f4ff 30%, #ffffff 100%)",
-        minHeight: "85vh",
+        minHeight: isMobile ? "auto" : "85vh",
         position: "relative",
         overflow: "hidden"
       }}>
-        {/* Subtle gradient orbs */}
-        <div style={{
-          position: "absolute",
-          top: "10%",
-          left: "10%",
-          width: "400px",
-          height: "400px",
-          background: "radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%)",
-          borderRadius: "50%",
-          pointerEvents: "none"
-        }} />
-        <div style={{
-          position: "absolute",
-          top: "30%",
-          right: "5%",
-          width: "300px",
-          height: "300px",
-          background: "radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)",
-          borderRadius: "50%",
-          pointerEvents: "none"
-        }} />
+        {/* Subtle gradient orbs - hidden on mobile */}
+        {!isMobile && (
+          <>
+            <div style={{
+              position: "absolute",
+              top: "10%",
+              left: "10%",
+              width: "400px",
+              height: "400px",
+              background: "radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%)",
+              borderRadius: "50%",
+              pointerEvents: "none"
+            }} />
+            <div style={{
+              position: "absolute",
+              top: "30%",
+              right: "5%",
+              width: "300px",
+              height: "300px",
+              background: "radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)",
+              borderRadius: "50%",
+              pointerEvents: "none"
+            }} />
+          </>
+        )}
 
-        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 24px", position: "relative", zIndex: 1 }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div style={{ textAlign: "center", maxWidth: "800px", margin: "0 auto" }}>
-            {/* Hero Text with MagneticText */}
-            <div style={{ marginBottom: "40px" }}>
-              <div className="flex flex-col items-center gap-4">
-                <MagneticText text="Source" hoverText="Discover" />
-                <MagneticText text="Smarter" hoverText="Faster" />
-              </div>
+            {/* Hero Main Text */}
+            <h1 style={{
+              fontSize: isMobile ? "32px" : "56px",
+              fontWeight: "700",
+              color: "#0f172a",
+              lineHeight: "1.1",
+              marginBottom: "16px",
+              letterSpacing: "-1px"
+            }}>
+              Find <span style={{ color: "#3b82f6" }}>Verified</span> Suppliers<br />
+              <span style={{ color: "#3b82f6" }}>10x Faster</span>
+            </h1>
+
+            {/* MagneticText Component */}
+            <div style={{ marginBottom: "24px" }}>
+              <MagneticText text="Smarter Service" hoverText="Better Results" />
             </div>
-            <p style={{ fontSize: "20px", color: "#64748b", marginBottom: "40px", lineHeight: "1.6" }}>
+
+            <p style={{ fontSize: isMobile ? "16px" : "20px", color: "#64748b", marginBottom: "40px", lineHeight: "1.6", padding: isMobile ? "0 8px" : "0" }}>
               ChidiyaAI is your AI-powered B2B sourcing partner. Get matched with verified wholesalers, compare prices, and close deals — all in one place.
             </p>
 
             {/* Prominent Search Box */}
             <div style={{
               display: "flex",
+              flexDirection: isMobile ? "column" : "row",
               maxWidth: "600px",
               margin: "0 auto 32px",
               backgroundColor: "white",
@@ -161,10 +143,10 @@ export default function Home() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="What are you looking to source? e.g., textile, electronics..."
+                placeholder={isMobile ? "What are you looking for?" : "What are you looking to source? e.g., textile, electronics..."}
                 style={{
                   flex: 1,
-                  padding: "20px 24px",
+                  padding: isMobile ? "16px" : "20px 24px",
                   border: "none",
                   outline: "none",
                   fontSize: "16px",
@@ -174,12 +156,13 @@ export default function Home() {
               <Link href="/onboarding" style={{
                 backgroundColor: "#3b82f6",
                 color: "white",
-                padding: "20px 32px",
+                padding: isMobile ? "16px" : "20px 32px",
                 textDecoration: "none",
                 fontWeight: "600",
                 fontSize: "16px",
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: "8px"
               }}>
                 Search
@@ -187,14 +170,15 @@ export default function Home() {
               </Link>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
+            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "center", gap: "16px", padding: isMobile ? "0 16px" : "0" }}>
               <Link href="/onboarding" style={{
                 backgroundColor: "#0f172a",
                 color: "white",
                 padding: "14px 28px",
                 borderRadius: "8px",
                 textDecoration: "none",
-                fontWeight: "500"
+                fontWeight: "500",
+                textAlign: "center"
               }}>
                 Start Sourcing Free
               </Link>
@@ -205,7 +189,8 @@ export default function Home() {
                 borderRadius: "8px",
                 textDecoration: "none",
                 fontWeight: "500",
-                border: "1px solid #e2e8f0"
+                border: "1px solid #e2e8f0",
+                textAlign: "center"
               }}>
                 See How It Works
               </Link>
@@ -215,141 +200,191 @@ export default function Home() {
       </section>
 
       {/* Partner Logos Section */}
-      <section style={{ padding: "60px 24px", backgroundColor: "white", borderBottom: "1px solid #f1f5f9" }}>
-        <div style={{ maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
-          <p style={{ fontSize: "14px", color: "#94a3b8", marginBottom: "32px", textTransform: "uppercase", letterSpacing: "1px" }}>
-            Trusted by verified wholesaler partners
-          </p>
-          <div style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: "48px",
-            flexWrap: "wrap",
-            alignItems: "center"
-          }}>
-            {partners.map((partner, i) => (
-              <div
-                key={i}
-                style={{
-                  fontSize: "24px",
-                  fontWeight: "bold",
-                  color: "#cbd5e1",
-                  transition: "all 0.3s ease",
-                  cursor: "pointer",
-                  filter: "grayscale(100%)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#3b82f6";
-                  e.currentTarget.style.filter = "grayscale(0%)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#cbd5e1";
-                  e.currentTarget.style.filter = "grayscale(100%)";
-                }}
-              >
-                {partner}
-              </div>
-            ))}
-          </div>
+      <section style={{ padding: isMobile ? "40px 16px" : "60px 0", backgroundColor: "white", borderBottom: "1px solid #f1f5f9" }}>
+        <p style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "24px", textTransform: "uppercase", letterSpacing: "1px", textAlign: "center" }}>
+          Trusted by verified wholesaler partners
+        </p>
+        <div style={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          gap: isMobile ? "16px" : "32px",
+          padding: "0 16px"
+        }}>
+          {partners.map((partner, i) => (
+            <div
+              key={i}
+              style={{
+                fontSize: isMobile ? "16px" : "20px",
+                fontWeight: "bold",
+                color: "#cbd5e1"
+              }}
+            >
+              {partner}
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Meet Chidiya Section - Sticky Scroll Effect */}
-      <section id="meet-chidi" style={{ padding: "100px 24px", backgroundColor: "#f8fafc" }}>
+      {/* Meet Chidiya Section */}
+      <section id="meet-chidi" style={{ padding: isMobile ? "60px 16px" : "100px 24px", backgroundColor: "#f8fafc" }}>
         <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "80px", alignItems: "center" }}>
-            {/* Left - Sticky Content */}
-            <div style={{ position: "sticky", top: "100px" }}>
-              <span style={{
+          {/* Header */}
+          <div style={{ textAlign: "center", marginBottom: "60px" }}>
+            <span style={{
+              display: "inline-block",
+              padding: "6px 14px",
+              backgroundColor: "#eff6ff",
+              color: "#3b82f6",
+              borderRadius: "20px",
+              fontSize: "13px",
+              fontWeight: "500",
+              marginBottom: "16px"
+            }}>
+              Meet Chidiya
+            </span>
+            <h2 style={{ fontSize: isMobile ? "28px" : "42px", fontWeight: "bold", color: "#0f172a", marginBottom: "20px", lineHeight: "1.2" }}>
+              Your Always-On{!isMobile && <br />}Wholesale Assistant
+            </h2>
+          </div>
+
+          {/* Agent Mode Card */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+            gap: isMobile ? "24px" : "40px",
+            marginBottom: "40px",
+            alignItems: "center"
+          }}>
+            <div style={{ padding: isMobile ? "20px" : "40px" }}>
+              <div style={{
                 display: "inline-block",
-                padding: "6px 14px",
-                backgroundColor: "#eff6ff",
-                color: "#3b82f6",
-                borderRadius: "20px",
-                fontSize: "13px",
-                fontWeight: "500",
+                padding: "6px 12px",
+                backgroundColor: "#dcfce7",
+                color: "#15803d",
+                borderRadius: "12px",
+                fontSize: "12px",
+                fontWeight: "600",
                 marginBottom: "16px"
               }}>
-                Meet Chidiya
-              </span>
-              <h2 style={{ fontSize: "42px", fontWeight: "bold", color: "#0f172a", marginBottom: "20px", lineHeight: "1.2" }}>
-                Your Always-On<br />Wholesale Assistant
-              </h2>
-              <p style={{ fontSize: "18px", color: "#64748b", marginBottom: "32px", lineHeight: "1.7" }}>
-                Chidiya is your AI-powered sourcing agent that works 24/7. Get personalized supplier matches, price comparisons, and deal alerts — automatically.
+                🤖 AGENT MODE
+              </div>
+              <h3 style={{ fontSize: "28px", fontWeight: "bold", color: "#0f172a", marginBottom: "16px" }}>
+                Deals sent to you, personally matched
+              </h3>
+              <p style={{ fontSize: "16px", color: "#64748b", marginBottom: "24px", lineHeight: "1.7" }}>
+                Chidiya monitors opportunities and sends you deals that match your profile, activity, and preferences — without you lifting a finger.
               </p>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                {["AI-powered supplier matching", "Real-time price alerts", "Verified GST suppliers only", "Direct chat with suppliers"].map((item, i) => (
-                  <li key={i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 0", fontSize: "16px", color: "#475569" }}>
-                    <span style={{ color: "#22c55e", fontSize: "18px" }}>✓</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#3b82f6", fontWeight: "500" }}>
+                <span>📧</span>
+                <span>Receive curated deals via email from Chidiya</span>
+              </div>
             </div>
+            <div style={{
+              backgroundColor: "white",
+              borderRadius: "20px",
+              padding: "24px",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.1)",
+              height: isMobile ? "200px" : "400px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              order: isMobile ? -1 : 0
+            }}>
+              <div style={{
+                backgroundColor: "#f1f5f9",
+                borderRadius: "16px",
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#94a3b8",
+                fontSize: "16px"
+              }}>
+                [Agent Mode Demo - Email Notifications]
+              </div>
+            </div>
+          </div>
 
-            {/* Right - Scrolling Image Placeholder */}
-            <div>
+          {/* Chat Mode Card */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+            gap: isMobile ? "24px" : "40px",
+            alignItems: "center"
+          }}>
+            <div style={{
+              backgroundColor: "white",
+              borderRadius: "20px",
+              padding: "24px",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.1)",
+              height: isMobile ? "200px" : "400px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}>
               <div style={{
-                backgroundColor: "white",
-                borderRadius: "20px",
-                padding: "40px",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.1)",
-                marginBottom: "40px"
+                backgroundColor: "#f1f5f9",
+                borderRadius: "16px",
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#94a3b8",
+                fontSize: isMobile ? "14px" : "16px"
               }}>
-                <div style={{
-                  backgroundColor: "#f1f5f9",
-                  borderRadius: "12px",
-                  height: "300px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#94a3b8",
-                  fontSize: "16px"
-                }}>
-                  [Chidi AI Demo Image Placeholder]
-                </div>
+                [Chat Mode Demo - AI Conversation]
               </div>
+            </div>
+            <div style={{ padding: isMobile ? "20px" : "40px" }}>
               <div style={{
-                backgroundColor: "white",
-                borderRadius: "20px",
-                padding: "24px",
-                boxShadow: "0 10px 40px rgba(0,0,0,0.08)"
+                display: "inline-block",
+                padding: "6px 12px",
+                backgroundColor: "#eff6ff",
+                color: "#3b82f6",
+                borderRadius: "12px",
+                fontSize: "12px",
+                fontWeight: "600",
+                marginBottom: "16px"
               }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-                  <div style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "50%",
-                    background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "white"
-                  }}>⚡</div>
-                  <div>
-                    <div style={{ fontWeight: "600", color: "#0f172a" }}>Chidiya</div>
-                    <div style={{ fontSize: "13px", color: "#64748b" }}>AI Sourcing Agent</div>
-                  </div>
-                </div>
-                <p style={{ fontSize: "14px", color: "#475569", backgroundColor: "#f8fafc", padding: "12px", borderRadius: "8px" }}>
-                  "Found 23 verified textile suppliers in Delhi NCR matching your requirements. Average savings: ₹45,000/order."
-                </p>
+                💬 CHAT MODE
               </div>
+              <h3 style={{ fontSize: "28px", fontWeight: "bold", color: "#0f172a", marginBottom: "16px" }}>
+                Search deals anytime with Chidiya
+              </h3>
+              <p style={{ fontSize: "16px", color: "#64748b", marginBottom: "24px", lineHeight: "1.7" }}>
+                Chat with Chidiya 24/7 to find deals by category, ROI, budget, or volume — all from verified suppliers.
+              </p>
+              <Link href="/auth/signin?redirect=onboarding" style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                backgroundColor: "#0f172a",
+                color: "white",
+                padding: "14px 24px",
+                borderRadius: "8px",
+                textDecoration: "none",
+                fontWeight: "500"
+              }}>
+                Chat with Chidiya
+                <span>→</span>
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section - Rolling Text List */}
-      <section id="features" style={{ padding: "100px 24px", backgroundColor: "white" }}>
+      <section id="features" style={{ padding: isMobile ? "60px 16px" : "100px 24px", backgroundColor: "white" }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto", display: "flex", justifyContent: "center", alignItems: "center" }}>
           <RollingTextList />
         </div>
       </section>
 
       {/* Video Tutorial Section */}
-      <section style={{ padding: "100px 24px", backgroundColor: "#0f172a" }}>
+      <section style={{ padding: isMobile ? "60px 16px" : "100px 24px", backgroundColor: "#0f172a" }}>
         <div style={{ maxWidth: "900px", margin: "0 auto", textAlign: "center" }}>
           <span style={{
             display: "inline-block",
@@ -363,10 +398,10 @@ export default function Home() {
           }}>
             Quick Tutorial
           </span>
-          <h2 style={{ fontSize: "36px", fontWeight: "bold", color: "white", marginBottom: "16px" }}>
+          <h2 style={{ fontSize: isMobile ? "28px" : "36px", fontWeight: "bold", color: "white", marginBottom: "16px" }}>
             See ChidiyaAI in Action
           </h2>
-          <p style={{ fontSize: "18px", color: "#94a3b8", marginBottom: "40px" }}>
+          <p style={{ fontSize: isMobile ? "16px" : "18px", color: "#94a3b8", marginBottom: "40px" }}>
             Watch how businesses find verified suppliers in under 2 minutes
           </p>
 
@@ -401,16 +436,16 @@ export default function Home() {
       </section>
 
       {/* Proven Performance - Animated Counters */}
-      <section style={{ padding: "80px 24px", backgroundColor: "white" }}>
+      <section style={{ padding: isMobile ? "60px 16px" : "100px 24px", backgroundColor: "white" }}>
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: "48px" }}>
-            <h2 style={{ fontSize: "36px", fontWeight: "bold", color: "#0f172a", marginBottom: "8px" }}>
+            <h2 style={{ fontSize: isMobile ? "28px" : "36px", fontWeight: "bold", color: "#0f172a", marginBottom: "8px" }}>
               Proven Performance
             </h2>
             <p style={{ color: "#64748b" }}>Growing every day with businesses like yours</p>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "32px", textAlign: "center" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: isMobile ? "24px" : "32px", textAlign: "center" }}>
             <div>
               <div style={{ fontSize: "48px", fontWeight: "bold", color: "#3b82f6", marginBottom: "8px" }}>
                 <AnimatedCounter end={500} suffix="+" />
@@ -440,14 +475,14 @@ export default function Home() {
       </section>
 
       {/* Simplify Section with Image */}
-      <section style={{ padding: "100px 24px", backgroundColor: "#f8fafc" }}>
+      <section style={{ padding: isMobile ? "60px 16px" : "100px 24px", backgroundColor: "#f8fafc" }}>
         <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "60px", alignItems: "center" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "32px" : "60px", alignItems: "center" }}>
             <div>
-              <h2 style={{ fontSize: "40px", fontWeight: "bold", color: "#0f172a", marginBottom: "20px", lineHeight: "1.2" }}>
+              <h2 style={{ fontSize: isMobile ? "28px" : "40px", fontWeight: "bold", color: "#0f172a", marginBottom: "20px", lineHeight: "1.2" }}>
                 Simplify the way you find new products for your store
               </h2>
-              <p style={{ fontSize: "18px", color: "#64748b", marginBottom: "32px", lineHeight: "1.7" }}>
+              <p style={{ fontSize: isMobile ? "16px" : "18px", color: "#64748b", marginBottom: "32px", lineHeight: "1.7" }}>
                 Stop wasting hours on IndiaMart. ChidiyaAI brings verified suppliers directly to you, with transparent pricing and instant communication.
               </p>
               <Link href="/onboarding" style={{
@@ -469,12 +504,13 @@ export default function Home() {
             <div style={{
               backgroundColor: "white",
               borderRadius: "20px",
-              height: "400px",
+              height: isMobile ? "200px" : "400px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               boxShadow: "0 20px 60px rgba(0,0,0,0.1)",
-              color: "#94a3b8"
+              color: "#94a3b8",
+              fontSize: isMobile ? "14px" : "16px"
             }}>
               [Product Discovery Image Placeholder]
             </div>
@@ -483,18 +519,18 @@ export default function Home() {
       </section>
 
       {/* Video Testimonials Section */}
-      <section id="testimonials" style={{ padding: "100px 24px", backgroundColor: "white" }}>
+      <section id="testimonials" style={{ padding: isMobile ? "60px 16px" : "100px 24px", backgroundColor: "white" }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "60px" }}>
-            <h2 style={{ fontSize: "40px", fontWeight: "bold", color: "#0f172a", marginBottom: "16px" }}>
+          <div style={{ textAlign: "center", marginBottom: isMobile ? "40px" : "60px" }}>
+            <h2 style={{ fontSize: isMobile ? "28px" : "40px", fontWeight: "bold", color: "#0f172a", marginBottom: "16px" }}>
               What Our Users Say
             </h2>
-            <p style={{ fontSize: "18px", color: "#64748b" }}>
+            <p style={{ fontSize: isMobile ? "16px" : "18px", color: "#64748b" }}>
               Real businesses, real results
             </p>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: "24px" }}>
             {[
               { name: "Rajesh Kumar", role: "Owner, TechFab Industries", quote: "ChidiyaAI helped us find verified suppliers 10x faster. Saved us ₹3 lakh in the first month!" },
               { name: "Priya Sharma", role: "Procurement, Sharma Textiles", quote: "The AI matching is incredible. We get exactly what we need, with verified GST suppliers only." },
@@ -542,13 +578,13 @@ export default function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" style={{ padding: "100px 24px", backgroundColor: "#f8fafc" }}>
+      <section id="pricing" style={{ padding: isMobile ? "60px 16px" : "100px 24px", backgroundColor: "#f8fafc" }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: "48px" }}>
-            <h2 style={{ fontSize: "40px", fontWeight: "bold", color: "#0f172a", marginBottom: "16px" }}>
+            <h2 style={{ fontSize: isMobile ? "28px" : "40px", fontWeight: "bold", color: "#0f172a", marginBottom: "16px" }}>
               Simple, Transparent Pricing
             </h2>
-            <p style={{ fontSize: "18px", color: "#64748b", marginBottom: "24px" }}>
+            <p style={{ fontSize: isMobile ? "16px" : "18px", color: "#64748b", marginBottom: "24px" }}>
               Start free. Upgrade when you're ready.
             </p>
 
@@ -567,7 +603,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: "24px" }}>
             {/* Free */}
             <div style={{ backgroundColor: "white", borderRadius: "16px", padding: "32px", border: "1px solid #e2e8f0" }}>
               <h3 style={{ fontSize: "20px", fontWeight: "bold", color: "#0f172a", marginBottom: "4px" }}>Free</h3>
@@ -582,7 +618,7 @@ export default function Home() {
             </div>
 
             {/* Pro */}
-            <div style={{ backgroundColor: "#0f172a", borderRadius: "16px", padding: "32px", color: "white", transform: "scale(1.05)" }}>
+            <div style={{ backgroundColor: "#0f172a", borderRadius: "16px", padding: isMobile ? "24px" : "32px", color: "white", transform: isMobile ? "none" : "scale(1.05)" }}>
               <span style={{ display: "inline-block", padding: "4px 12px", backgroundColor: "#3b82f6", borderRadius: "20px", fontSize: "12px", marginBottom: "12px" }}>Most Popular</span>
               <h3 style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "4px" }}>Pro</h3>
               <p style={{ fontSize: "14px", color: "#94a3b8", marginBottom: "20px" }}>For growing businesses</p>
@@ -614,12 +650,12 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section style={{ padding: "100px 24px", backgroundColor: "#0f172a" }}>
+      <section style={{ padding: isMobile ? "60px 16px" : "100px 24px", backgroundColor: "#0f172a" }}>
         <div style={{ maxWidth: "700px", margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontSize: "40px", fontWeight: "bold", color: "white", marginBottom: "16px" }}>
+          <h2 style={{ fontSize: isMobile ? "28px" : "40px", fontWeight: "bold", color: "white", marginBottom: "16px" }}>
             Ready to transform your B2B sourcing?
           </h2>
-          <p style={{ fontSize: "18px", color: "#94a3b8", marginBottom: "32px" }}>
+          <p style={{ fontSize: isMobile ? "16px" : "18px", color: "#94a3b8", marginBottom: "32px" }}>
             Join hundreds of businesses saving time and money with ChidiyaAI
           </p>
           <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
@@ -640,9 +676,14 @@ export default function Home() {
       </section>
 
       {/* Footer with Social Links */}
-      <footer style={{ padding: "60px 24px", backgroundColor: "#0f172a", borderTop: "1px solid #1e293b" }}>
+      <footer style={{ padding: isMobile ? "40px 16px" : "60px 24px", backgroundColor: "#0f172a", borderTop: "1px solid #1e293b" }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: "40px", marginBottom: "40px" }}>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr 1fr" : "2fr 1fr 1fr 1fr 1fr",
+            gap: isMobile ? "24px" : "40px",
+            marginBottom: "40px"
+          }}>
             <div>
               <div style={{ fontWeight: "bold", fontSize: "20px", color: "white", marginBottom: "12px" }}>
                 Chidiya<span style={{ color: "#3b82f6" }}>AI</span>

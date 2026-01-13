@@ -9,12 +9,20 @@ export function MagneticText({ text = "CREATIVE", hoverText = "EXPLORE", classNa
     const innerTextRef = useRef(null);
     const [isHovered, setIsHovered] = useState(false);
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+    const [isMobile, setIsMobile] = useState(false);
 
     const mousePos = useRef({ x: 0, y: 0 });
     const currentPos = useRef({ x: 0, y: 0 });
     const animationFrameRef = useRef();
 
     useEffect(() => {
+        // Check if mobile
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+
         const updateSize = () => {
             if (containerRef.current) {
                 setContainerSize({
@@ -25,10 +33,15 @@ export function MagneticText({ text = "CREATIVE", hoverText = "EXPLORE", classNa
         };
         updateSize();
         window.addEventListener("resize", updateSize);
-        return () => window.removeEventListener("resize", updateSize);
+        return () => {
+            window.removeEventListener("resize", updateSize);
+            window.removeEventListener("resize", checkMobile);
+        };
     }, []);
 
     useEffect(() => {
+        if (isMobile) return; // Skip animation on mobile
+
         const lerp = (start, end, factor) => start + (end - start) * factor;
 
         const animate = () => {
@@ -50,30 +63,39 @@ export function MagneticText({ text = "CREATIVE", hoverText = "EXPLORE", classNa
         return () => {
             if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
         };
-    }, []);
+    }, [isMobile]);
 
     const handleMouseMove = useCallback((e) => {
-        if (!containerRef.current) return;
+        if (isMobile || !containerRef.current) return;
         const rect = containerRef.current.getBoundingClientRect();
         mousePos.current = {
             x: e.clientX - rect.left,
             y: e.clientY - rect.top,
         };
-    }, []);
+    }, [isMobile]);
 
     const handleMouseEnter = useCallback((e) => {
-        if (!containerRef.current) return;
+        if (isMobile || !containerRef.current) return;
         const rect = containerRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         mousePos.current = { x, y };
         currentPos.current = { x, y };
         setIsHovered(true);
-    }, []);
+    }, [isMobile]);
 
     const handleMouseLeave = useCallback(() => {
         setIsHovered(false);
     }, []);
+
+    // Simple text on mobile
+    if (isMobile) {
+        return (
+            <div className={cn("relative inline-flex items-center justify-center select-none", className)}>
+                <span className="text-2xl md:text-5xl font-bold tracking-tighter text-slate-600">{text}</span>
+            </div>
+        );
+    }
 
     return (
         <div
@@ -84,7 +106,7 @@ export function MagneticText({ text = "CREATIVE", hoverText = "EXPLORE", classNa
             className={cn("relative inline-flex items-center justify-center cursor-none select-none", className)}
         >
             {/* Base text layer - original text */}
-            <span className="text-5xl md:text-7xl font-bold tracking-tighter text-slate-900">{text}</span>
+            <span className="text-3xl md:text-5xl lg:text-7xl font-bold tracking-tighter text-slate-900">{text}</span>
 
             <div
                 ref={circleRef}
@@ -107,7 +129,7 @@ export function MagneticText({ text = "CREATIVE", hoverText = "EXPLORE", classNa
                         willChange: "transform",
                     }}
                 >
-                    <span className="text-5xl md:text-7xl font-bold tracking-tighter text-white whitespace-nowrap">
+                    <span className="text-3xl md:text-5xl lg:text-7xl font-bold tracking-tighter text-white whitespace-nowrap">
                         {hoverText}
                     </span>
                 </div>

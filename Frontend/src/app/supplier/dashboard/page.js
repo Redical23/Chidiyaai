@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 // Mock data - will be replaced with API calls
 const mockInquiries = [
@@ -47,6 +48,8 @@ export default function SupplierDashboard() {
     const [activeTab, setActiveTab] = useState("inquiries");
     const [selectedInquiry, setSelectedInquiry] = useState(null);
     const [quoteForm, setQuoteForm] = useState({ price: "", moq: "", timeline: "", notes: "" });
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const isMobile = useIsMobile();
 
     const handleQuoteSubmit = (e) => {
         e.preventDefault();
@@ -62,99 +65,207 @@ export default function SupplierDashboard() {
             fontFamily: "'Inter', system-ui, sans-serif",
             backgroundColor: "#f8fafc"
         }}>
-            {/* Sidebar */}
-            <aside style={{
-                width: "260px",
-                backgroundColor: "#0f172a",
-                padding: "24px 16px",
-                position: "fixed",
-                top: 0,
-                left: 0,
-                bottom: 0
-            }}>
-                <Link href="/supplier" style={{ textDecoration: "none", display: "block", marginBottom: "40px" }}>
-                    <span style={{ fontSize: "20px", fontWeight: "bold", color: "white" }}>
-                        Chidiya<span style={{ color: "#3b82f6" }}>AI</span>
-                    </span>
-                    <span style={{ display: "block", fontSize: "12px", color: "#64748b", marginTop: "2px" }}>Supplier Portal</span>
-                </Link>
-
-                <nav style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                    {[
-                        { id: "inquiries", label: "Inquiries", icon: "📥" },
-                        { id: "quotes", label: "My Quotes", icon: "📝" },
-                        { id: "analytics", label: "Analytics", icon: "📊" },
-                        { id: "profile", label: "Company Profile", icon: "🏢" },
-                        { id: "products", label: "Products", icon: "📦" },
-                    ].map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => setActiveTab(item.id)}
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "12px",
-                                padding: "12px 16px",
-                                backgroundColor: activeTab === item.id ? "#1e293b" : "transparent",
-                                border: "none",
-                                borderRadius: "8px",
-                                color: activeTab === item.id ? "white" : "#94a3b8",
-                                fontSize: "14px",
-                                cursor: "pointer",
-                                textAlign: "left"
-                            }}
-                        >
-                            <span>{item.icon}</span>
-                            {item.label}
-                        </button>
-                    ))}
-                </nav>
-
-                {/* Badges */}
-                <div style={{ marginTop: "40px", padding: "16px", backgroundColor: "#1e293b", borderRadius: "12px" }}>
-                    <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px" }}>YOUR BADGES</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                        <span style={{ padding: "4px 10px", backgroundColor: "#22c55e", color: "white", borderRadius: "12px", fontSize: "11px" }}>
-                            ✓ GST Verified
+            {/* Sidebar - Hidden on Mobile */}
+            {!isMobile && (
+                <aside style={{
+                    width: "260px",
+                    backgroundColor: "#0f172a",
+                    padding: "24px 16px",
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    bottom: 0
+                }}>
+                    <Link href="/supplier" style={{ textDecoration: "none", display: "block", marginBottom: "40px" }}>
+                        <span style={{ fontSize: "20px", fontWeight: "bold", color: "white" }}>
+                            Chidiya<span style={{ color: "#3b82f6" }}>AI</span>
                         </span>
-                        <span style={{ padding: "4px 10px", backgroundColor: "#3b82f6", color: "white", borderRadius: "12px", fontSize: "11px" }}>
-                            Premium
-                        </span>
-                    </div>
-                    <p style={{ fontSize: "11px", color: "#64748b", marginTop: "12px" }}>
-                        Badges are set by admin and cannot be modified.
-                    </p>
-                </div>
-
-                <div style={{ position: "absolute", bottom: "24px", left: "16px", right: "16px" }}>
-                    <Link href="/" style={{
-                        display: "block",
-                        padding: "12px",
-                        backgroundColor: "#1e293b",
-                        borderRadius: "8px",
-                        color: "#94a3b8",
-                        textDecoration: "none",
-                        fontSize: "14px",
-                        textAlign: "center"
-                    }}>
-                        ← Back to Main Site
+                        <span style={{ display: "block", fontSize: "12px", color: "#64748b", marginTop: "2px" }}>Supplier Portal</span>
                     </Link>
-                </div>
-            </aside>
+
+                    <nav style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        {[
+                            { id: "inquiries", label: "Inquiries", icon: "📥" },
+                            { id: "quotes", label: "My Quotes", icon: "📝" },
+                            { id: "analytics", label: "Analytics", icon: "📊" },
+                            { id: "profile", label: "Company Profile", icon: "🏢" },
+                            { id: "products", label: "Products", icon: "📦" },
+                        ].map((item) => (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveTab(item.id)}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "12px",
+                                    padding: "12px 16px",
+                                    backgroundColor: activeTab === item.id ? "#1e293b" : "transparent",
+                                    border: "none",
+                                    borderRadius: "8px",
+                                    color: activeTab === item.id ? "white" : "#94a3b8",
+                                    fontSize: "14px",
+                                    cursor: "pointer",
+                                    textAlign: "left"
+                                }}
+                            >
+                                <span>{item.icon}</span>
+                                {item.label}
+                            </button>
+                        ))}
+                    </nav>
+
+                    {/* Badges */}
+                    <div style={{ marginTop: "40px", padding: "16px", backgroundColor: "#1e293b", borderRadius: "12px" }}>
+                        <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px" }}>YOUR BADGES</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                            <span style={{ padding: "4px 10px", backgroundColor: "#22c55e", color: "white", borderRadius: "12px", fontSize: "11px" }}>
+                                ✓ GST Verified
+                            </span>
+                            <span style={{ padding: "4px 10px", backgroundColor: "#3b82f6", color: "white", borderRadius: "12px", fontSize: "11px" }}>
+                                Premium
+                            </span>
+                        </div>
+                        <p style={{ fontSize: "11px", color: "#64748b", marginTop: "12px" }}>
+                            Badges are set by admin and cannot be modified.
+                        </p>
+                    </div>
+
+                    <div style={{ position: "absolute", bottom: "24px", left: "16px", right: "16px" }}>
+                        <Link href="/" style={{
+                            display: "block",
+                            padding: "12px",
+                            backgroundColor: "#1e293b",
+                            borderRadius: "8px",
+                            color: "#94a3b8",
+                            textDecoration: "none",
+                            fontSize: "14px",
+                            textAlign: "center"
+                        }}>
+                            ← Back to Main Site
+                        </Link>
+                    </div>
+                </aside>
+            )}
+
+            {/* Mobile Header */}
+            {isMobile && (
+                <>
+                    <header style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        backgroundColor: "#0f172a",
+                        padding: "12px 16px",
+                        zIndex: 50,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between"
+                    }}>
+                        <Link href="/supplier" style={{ textDecoration: "none" }}>
+                            <span style={{ fontSize: "18px", fontWeight: "bold", color: "white" }}>
+                                Chidiya<span style={{ color: "#3b82f6" }}>AI</span>
+                            </span>
+                        </Link>
+                        <Link href="/" style={{
+                            padding: "6px 12px",
+                            backgroundColor: "#1e293b",
+                            borderRadius: "6px",
+                            color: "#94a3b8",
+                            textDecoration: "none",
+                            fontSize: "12px"
+                        }}>
+                            ← Home
+                        </Link>
+                    </header>
+                    {/* Mobile Tab Bar */}
+                    <div style={{
+                        position: "fixed",
+                        top: "48px",
+                        left: 0,
+                        right: 0,
+                        backgroundColor: "white",
+                        borderBottom: "1px solid #e2e8f0",
+                        display: "flex",
+                        overflowX: "auto",
+                        zIndex: 49
+                    }}>
+                        {[
+                            { id: "inquiries", label: "Inquiries" },
+                            { id: "quotes", label: "Quotes" },
+                            { id: "analytics", label: "Stats" },
+                            { id: "profile", label: "Profile" },
+                        ].map((item) => (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveTab(item.id)}
+                                style={{
+                                    padding: "12px 16px",
+                                    fontSize: "13px",
+                                    fontWeight: activeTab === item.id ? "600" : "400",
+                                    color: activeTab === item.id ? "#3b82f6" : "#64748b",
+                                    backgroundColor: "transparent",
+                                    border: "none",
+                                    borderBottom: activeTab === item.id ? "2px solid #3b82f6" : "2px solid transparent",
+                                    cursor: "pointer",
+                                    whiteSpace: "nowrap"
+                                }}
+                            >
+                                {item.label}
+                            </button>
+                        ))}
+                    </div>
+                </>
+            )}
 
             {/* Main Content */}
-            <main style={{ marginLeft: "260px", flex: 1, padding: "24px" }}>
+            <main style={{ marginLeft: isMobile ? 0 : "260px", flex: 1, padding: isMobile ? "100px 16px 16px" : "24px" }}>
                 {/* Header */}
-                <header style={{ marginBottom: "32px" }}>
-                    <h1 style={{ fontSize: "24px", fontWeight: "bold", color: "#0f172a", marginBottom: "8px" }}>
+                <header style={{ marginBottom: isMobile ? "16px" : "32px" }}>
+                    <h1 style={{ fontSize: isMobile ? "20px" : "24px", fontWeight: "bold", color: "#0f172a", marginBottom: "8px" }}>
                         Welcome, Premium Textile Corp
                     </h1>
-                    <p style={{ color: "#64748b" }}>Manage your inquiries, quotes, and business profile</p>
+                    <p style={{ color: "#64748b", fontSize: isMobile ? "13px" : "14px" }}>Manage your inquiries, quotes, and business profile</p>
                 </header>
+
+                {/* Mobile Badges - Visible only on mobile */}
+                {isMobile && (
+                    <div style={{
+                        backgroundColor: "white",
+                        padding: "16px",
+                        borderRadius: "12px",
+                        border: "1px solid #e2e8f0",
+                        marginBottom: "16px"
+                    }}>
+                        <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "10px", fontWeight: "500" }}>YOUR BADGES</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                            <span style={{
+                                padding: "4px 10px",
+                                backgroundColor: "#22c55e",
+                                color: "white",
+                                borderRadius: "12px",
+                                fontSize: "11px",
+                                fontWeight: "500"
+                            }}>
+                                ✓ GST Verified
+                            </span>
+                            <span style={{
+                                padding: "4px 10px",
+                                backgroundColor: "#3b82f6",
+                                color: "white",
+                                borderRadius: "12px",
+                                fontSize: "11px",
+                                fontWeight: "500"
+                            }}>
+                                Premium
+                            </span>
+                        </div>
+                    </div>
+                )}
 
                 {/* Stats Cards */}
                 {activeTab === "inquiries" && (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "32px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: "16px", marginBottom: "32px" }}>
                         {[
                             { label: "Total Inquiries", value: mockStats.totalInquiries, color: "#3b82f6" },
                             { label: "Quotes Submitted", value: mockStats.quotesSubmitted, color: "#8b5cf6" },
@@ -190,8 +301,8 @@ export default function SupplierDashboard() {
                                     }}
                                 >
                                     <div>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-                                            <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>{inquiry.product}</h3>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px", flexWrap: "wrap" }}>
+                                            <h3 style={{ fontSize: isMobile ? "14px" : "16px", fontWeight: "600", color: "#0f172a" }}>{inquiry.product}</h3>
                                             <span style={{
                                                 padding: "2px 8px",
                                                 borderRadius: "10px",
@@ -202,11 +313,11 @@ export default function SupplierDashboard() {
                                                 {inquiry.status.toUpperCase()}
                                             </span>
                                         </div>
-                                        <div style={{ display: "flex", gap: "24px", fontSize: "13px", color: "#64748b" }}>
+                                        <div style={{ display: "flex", gap: isMobile ? "12px" : "24px", fontSize: "13px", color: "#64748b", flexWrap: "wrap" }}>
                                             <span>Qty: {inquiry.quantity}</span>
                                             <span>Budget: {inquiry.budget}</span>
-                                            <span>Timeline: {inquiry.timeline}</span>
-                                            <span>Received: {inquiry.receivedAt}</span>
+                                            {!isMobile && <span>Timeline: {inquiry.timeline}</span>}
+                                            {!isMobile && <span>Received: {inquiry.receivedAt}</span>}
                                         </div>
                                     </div>
                                     <div style={{ display: "flex", gap: "8px" }}>
@@ -269,7 +380,7 @@ export default function SupplierDashboard() {
 
                 {/* Analytics Tab */}
                 {activeTab === "analytics" && (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "24px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: "24px" }}>
                         <div style={{ backgroundColor: "white", padding: "24px", borderRadius: "16px", border: "1px solid #e2e8f0" }}>
                             <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a", marginBottom: "20px" }}>Performance Overview</h3>
                             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -298,9 +409,9 @@ export default function SupplierDashboard() {
 
                 {/* Profile Tab */}
                 {activeTab === "profile" && (
-                    <div style={{ backgroundColor: "white", padding: "32px", borderRadius: "16px", border: "1px solid #e2e8f0" }}>
-                        <h2 style={{ fontSize: "20px", fontWeight: "600", color: "#0f172a", marginBottom: "24px" }}>Company Profile</h2>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+                    <div style={{ backgroundColor: "white", padding: isMobile ? "20px" : "32px", borderRadius: "16px", border: "1px solid #e2e8f0" }}>
+                        <h2 style={{ fontSize: isMobile ? "18px" : "20px", fontWeight: "600", color: "#0f172a", marginBottom: "24px" }}>Company Profile</h2>
+                        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "24px" }}>
                             <div>
                                 <label style={{ display: "block", fontSize: "14px", color: "#64748b", marginBottom: "4px" }}>Company Name</label>
                                 <p style={{ fontSize: "16px", fontWeight: "500", color: "#0f172a" }}>Premium Textile Corp</p>

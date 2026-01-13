@@ -14,7 +14,16 @@ export default function Chat() {
     const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState("");
     const [isTyping, setIsTyping] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
     const messagesEndRef = useRef(null);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     useEffect(() => {
         const requirements = localStorage.getItem("sourcingRequirements");
@@ -102,10 +111,10 @@ export default function Chat() {
                 zIndex: 50,
                 backgroundColor: "white",
                 borderBottom: "1px solid #e2e8f0",
-                padding: "16px 24px"
+                padding: isMobile ? "12px 16px" : "16px 24px"
             }}>
                 <div style={{ maxWidth: "900px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "8px" : "16px" }}>
                         <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "8px" }}>
                             <div style={{
                                 width: "32px",
@@ -117,39 +126,65 @@ export default function Chat() {
                                 justifyContent: "center",
                                 color: "white"
                             }}>⚡</div>
-                            <span style={{ fontSize: "18px", fontWeight: "bold", color: "#0f172a" }}>
+                            <span style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: "bold", color: "#0f172a" }}>
                                 Chidiya<span style={{ color: "#3b82f6" }}>AI</span>
                             </span>
                         </Link>
-                        <div style={{ width: "1px", height: "24px", backgroundColor: "#e2e8f0" }} />
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ width: "8px", height: "8px", backgroundColor: "#22c55e", borderRadius: "50%" }} />
-                            <span style={{ fontSize: "14px", color: "#64748b" }}>Chidiya is online</span>
+                        {!isMobile && (
+                            <>
+                                <div style={{ width: "1px", height: "24px", backgroundColor: "#e2e8f0" }} />
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <span style={{ width: "8px", height: "8px", backgroundColor: "#22c55e", borderRadius: "50%" }} />
+                                    <span style={{ fontSize: "14px", color: "#64748b" }}>Chidiya is online</span>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Desktop Links */}
+                    {!isMobile && (
+                        <div style={{ display: "flex", gap: "16px" }}>
+                            <Link href="/dashboard" style={{ fontSize: "14px", color: "#64748b", textDecoration: "none" }}>My Dashboard</Link>
+                            <Link href="/onboarding" style={{ fontSize: "14px", color: "#3b82f6", textDecoration: "none", fontWeight: "500" }}>New Search</Link>
                         </div>
-                    </div>
-                    <div style={{ display: "flex", gap: "16px" }}>
-                        <Link href="/dashboard" style={{ fontSize: "14px", color: "#64748b", textDecoration: "none" }}>My Dashboard</Link>
-                        <Link href="/onboarding" style={{ fontSize: "14px", color: "#3b82f6", textDecoration: "none", fontWeight: "500" }}>New Search</Link>
-                    </div>
+                    )}
+
+                    {/* Mobile Menu Button */}
+                    {isMobile && (
+                        <button onClick={() => setMenuOpen(!menuOpen)} style={{ background: "none", border: "none", padding: "8px", cursor: "pointer" }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="2">
+                                {menuOpen ? <path d="M6 18L18 6M6 6l12 12" /> : <path d="M4 6h16M4 12h16M4 18h16" />}
+                            </svg>
+                        </button>
+                    )}
                 </div>
+
+                {/* Mobile Menu */}
+                {isMobile && menuOpen && (
+                    <div style={{ paddingTop: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <Link href="/dashboard" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px", color: "#64748b", textDecoration: "none" }}>My Dashboard</Link>
+                        <Link href="/onboarding" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px", color: "#3b82f6", textDecoration: "none", fontWeight: "500" }}>New Search</Link>
+                        <Link href="/" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "10px", color: "#64748b", textDecoration: "none" }}>Home</Link>
+                    </div>
+                )}
             </header>
 
             {/* Messages */}
-            <main style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
+            <main style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px" : "24px" }}>
                 <div style={{ maxWidth: "900px", margin: "0 auto" }}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                         {messages.map((message) => (
                             <div key={message.id} style={{ display: "flex", justifyContent: message.role === "user" ? "flex-end" : "flex-start" }}>
                                 <div style={{
-                                    maxWidth: "75%",
-                                    padding: "16px 20px",
+                                    maxWidth: isMobile ? "90%" : "75%",
+                                    padding: isMobile ? "12px 16px" : "16px 20px",
                                     borderRadius: "16px",
                                     backgroundColor: message.role === "user" ? "#0f172a" : "white",
                                     color: message.role === "user" ? "white" : "#0f172a",
                                     boxShadow: message.role === "user" ? "none" : "0 2px 8px rgba(0,0,0,0.06)",
                                     border: message.role === "user" ? "none" : "1px solid #e2e8f0"
                                 }}>
-                                    <p style={{ margin: 0, lineHeight: "1.6" }}>{message.content}</p>
+                                    <p style={{ margin: 0, lineHeight: "1.6", fontSize: isMobile ? "14px" : "15px" }}>{message.content}</p>
 
                                     {/* Supplier Cards */}
                                     {message.suppliers && (
@@ -158,14 +193,14 @@ export default function Chat() {
                                                 <div key={index} style={{
                                                     backgroundColor: "#f8fafc",
                                                     borderRadius: "12px",
-                                                    padding: "16px",
+                                                    padding: isMobile ? "12px" : "16px",
                                                     cursor: "pointer",
                                                     transition: "background-color 0.2s"
                                                 }}>
-                                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px", flexWrap: "wrap", gap: "8px" }}>
                                                         <div>
-                                                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                                                                <span style={{ fontWeight: "600", color: "#0f172a" }}>{supplier.name}</span>
+                                                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
+                                                                <span style={{ fontWeight: "600", color: "#0f172a", fontSize: isMobile ? "14px" : "15px" }}>{supplier.name}</span>
                                                                 {supplier.verified && (
                                                                     <span style={{
                                                                         padding: "2px 8px",
@@ -218,11 +253,11 @@ export default function Chat() {
 
             {/* Suggested Questions */}
             {messages.length <= 2 && (
-                <div style={{ backgroundColor: "white", borderTop: "1px solid #e2e8f0", padding: "16px 24px" }}>
+                <div style={{ backgroundColor: "white", borderTop: "1px solid #e2e8f0", padding: isMobile ? "12px 16px" : "16px 24px" }}>
                     <div style={{ maxWidth: "900px", margin: "0 auto" }}>
                         <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "12px" }}>Suggested questions:</p>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                            {suggestedQuestions.map((question, index) => (
+                            {suggestedQuestions.slice(0, isMobile ? 2 : 4).map((question, index) => (
                                 <button
                                     key={index}
                                     onClick={() => handleSend(question)}
@@ -231,7 +266,7 @@ export default function Chat() {
                                         backgroundColor: "#f1f5f9",
                                         border: "none",
                                         borderRadius: "20px",
-                                        fontSize: "13px",
+                                        fontSize: isMobile ? "12px" : "13px",
                                         color: "#475569",
                                         cursor: "pointer"
                                     }}
@@ -250,7 +285,7 @@ export default function Chat() {
                 bottom: 0,
                 backgroundColor: "white",
                 borderTop: "1px solid #e2e8f0",
-                padding: "16px 24px"
+                padding: isMobile ? "12px 16px" : "16px 24px"
             }}>
                 <div style={{ maxWidth: "900px", margin: "0 auto" }}>
                     <div style={{ display: "flex", gap: "12px" }}>
@@ -259,13 +294,13 @@ export default function Chat() {
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyPress={(e) => e.key === "Enter" && handleSend()}
-                            placeholder="Ask Chidiya about suppliers..."
+                            placeholder={isMobile ? "Ask Chidiya..." : "Ask Chidiya about suppliers..."}
                             style={{
                                 flex: 1,
-                                padding: "14px 20px",
+                                padding: isMobile ? "12px 16px" : "14px 20px",
                                 border: "1px solid #e2e8f0",
                                 borderRadius: "12px",
-                                fontSize: "15px",
+                                fontSize: isMobile ? "14px" : "15px",
                                 outline: "none",
                                 backgroundColor: "#f8fafc"
                             }}
@@ -274,7 +309,7 @@ export default function Chat() {
                             onClick={() => handleSend()}
                             disabled={!inputValue.trim()}
                             style={{
-                                padding: "14px 20px",
+                                padding: isMobile ? "12px 16px" : "14px 20px",
                                 backgroundColor: inputValue.trim() ? "#0f172a" : "#e2e8f0",
                                 color: inputValue.trim() ? "white" : "#94a3b8",
                                 border: "none",
@@ -283,10 +318,11 @@ export default function Chat() {
                                 display: "flex",
                                 alignItems: "center",
                                 gap: "8px",
-                                fontWeight: "500"
+                                fontWeight: "500",
+                                fontSize: isMobile ? "14px" : "15px"
                             }}
                         >
-                            Send
+                            {isMobile ? "→" : "Send"}
                         </button>
                     </div>
                 </div>

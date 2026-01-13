@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 // Mock data
 const mockInquiries = [
@@ -78,6 +79,7 @@ export default function BuyerDashboard() {
     const [activeTab, setActiveTab] = useState("inquiries");
     const [selectedInquiry, setSelectedInquiry] = useState(null);
     const [showQuotes, setShowQuotes] = useState(false);
+    const isMobile = useIsMobile();
 
     const handleDownloadPDF = (quoteId) => {
         // In production, this would call the API
@@ -99,100 +101,174 @@ export default function BuyerDashboard() {
             fontFamily: "'Inter', system-ui, sans-serif",
             backgroundColor: "#f8fafc"
         }}>
-            {/* Sidebar */}
-            <aside style={{
-                width: "260px",
-                backgroundColor: "white",
-                borderRight: "1px solid #e2e8f0",
-                padding: "24px 16px",
-                position: "fixed",
-                top: 0,
-                left: 0,
-                bottom: 0
-            }}>
-                <Link href="/" style={{ textDecoration: "none", display: "block", marginBottom: "40px" }}>
-                    <span style={{ fontSize: "20px", fontWeight: "bold", color: "#0f172a" }}>
-                        Chidiya<span style={{ color: "#3b82f6" }}>AI</span>
-                    </span>
-                    <span style={{ display: "block", fontSize: "12px", color: "#64748b", marginTop: "2px" }}>Buyer Dashboard</span>
-                </Link>
-
-                <nav style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                    {[
-                        { id: "inquiries", label: "My Inquiries", icon: "📤" },
-                        { id: "quotes", label: "Compare Quotes", icon: "📋" },
-                        { id: "suppliers", label: "Top Suppliers", icon: "🏆" },
-                        { id: "profile", label: "My Profile", icon: "👤" },
-                    ].map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => setActiveTab(item.id)}
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "12px",
-                                padding: "12px 16px",
-                                backgroundColor: activeTab === item.id ? "#f1f5f9" : "transparent",
-                                border: "none",
-                                borderRadius: "8px",
-                                color: activeTab === item.id ? "#0f172a" : "#64748b",
-                                fontSize: "14px",
-                                cursor: "pointer",
-                                textAlign: "left",
-                                fontWeight: activeTab === item.id ? "500" : "normal"
-                            }}
-                        >
-                            <span>{item.icon}</span>
-                            {item.label}
-                        </button>
-                    ))}
-                </nav>
-
-                <div style={{ marginTop: "40px", padding: "16px", backgroundColor: "#f8fafc", borderRadius: "12px" }}>
-                    <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "8px" }}>QUICK ACTIONS</div>
-                    <Link href="/chat" style={{
-                        display: "block",
-                        padding: "12px",
-                        backgroundColor: "#0f172a",
-                        color: "white",
-                        borderRadius: "8px",
-                        textDecoration: "none",
-                        fontSize: "14px",
-                        textAlign: "center",
-                        fontWeight: "500"
-                    }}>
-                        New Sourcing Request
+            {/* Sidebar - Hidden on Mobile */}
+            {!isMobile && (
+                <aside style={{
+                    width: "260px",
+                    backgroundColor: "white",
+                    borderRight: "1px solid #e2e8f0",
+                    padding: "24px 16px",
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    bottom: 0
+                }}>
+                    <Link href="/" style={{ textDecoration: "none", display: "block", marginBottom: "40px" }}>
+                        <span style={{ fontSize: "20px", fontWeight: "bold", color: "#0f172a" }}>
+                            Chidiya<span style={{ color: "#3b82f6" }}>AI</span>
+                        </span>
+                        <span style={{ display: "block", fontSize: "12px", color: "#64748b", marginTop: "2px" }}>Buyer Dashboard</span>
                     </Link>
-                </div>
 
-                <div style={{ position: "absolute", bottom: "24px", left: "16px", right: "16px" }}>
-                    <Link href="/" style={{
-                        display: "block",
-                        padding: "12px",
-                        backgroundColor: "#f1f5f9",
-                        borderRadius: "8px",
-                        color: "#64748b",
-                        textDecoration: "none",
-                        fontSize: "14px",
-                        textAlign: "center"
+                    <nav style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        {[
+                            { id: "inquiries", label: "My Inquiries", icon: "📤" },
+                            { id: "quotes", label: "Compare Quotes", icon: "📋" },
+                            { id: "suppliers", label: "Top Suppliers", icon: "🏆" },
+                            { id: "profile", label: "My Profile", icon: "👤" },
+                        ].map((item) => (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveTab(item.id)}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "12px",
+                                    padding: "12px 16px",
+                                    backgroundColor: activeTab === item.id ? "#f1f5f9" : "transparent",
+                                    border: "none",
+                                    borderRadius: "8px",
+                                    color: activeTab === item.id ? "#0f172a" : "#64748b",
+                                    fontSize: "14px",
+                                    cursor: "pointer",
+                                    textAlign: "left",
+                                    fontWeight: activeTab === item.id ? "500" : "normal"
+                                }}
+                            >
+                                <span>{item.icon}</span>
+                                {item.label}
+                            </button>
+                        ))}
+                    </nav>
+
+                    <div style={{ marginTop: "40px", padding: "16px", backgroundColor: "#f8fafc", borderRadius: "12px" }}>
+                        <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "8px" }}>QUICK ACTIONS</div>
+                        <Link href="/chat" style={{
+                            display: "block",
+                            padding: "12px",
+                            backgroundColor: "#0f172a",
+                            color: "white",
+                            borderRadius: "8px",
+                            textDecoration: "none",
+                            fontSize: "14px",
+                            textAlign: "center",
+                            fontWeight: "500"
+                        }}>
+                            New Sourcing Request
+                        </Link>
+                    </div>
+
+                    <div style={{ position: "absolute", bottom: "24px", left: "16px", right: "16px" }}>
+                        <Link href="/" style={{
+                            display: "block",
+                            padding: "12px",
+                            backgroundColor: "#f1f5f9",
+                            borderRadius: "8px",
+                            color: "#64748b",
+                            textDecoration: "none",
+                            fontSize: "14px",
+                            textAlign: "center"
+                        }}>
+                            ← Back to Home
+                        </Link>
+                    </div>
+                </aside>
+            )}
+
+            {/* Mobile Header */}
+            {isMobile && (
+                <>
+                    <header style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        backgroundColor: "white",
+                        borderBottom: "1px solid #e2e8f0",
+                        padding: "12px 16px",
+                        zIndex: 50,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between"
                     }}>
-                        ← Back to Home
-                    </Link>
-                </div>
-            </aside>
+                        <Link href="/" style={{ textDecoration: "none" }}>
+                            <span style={{ fontSize: "18px", fontWeight: "bold", color: "#0f172a" }}>
+                                Chidiya<span style={{ color: "#3b82f6" }}>AI</span>
+                            </span>
+                        </Link>
+                        <Link href="/chat" style={{
+                            padding: "6px 12px",
+                            backgroundColor: "#0f172a",
+                            borderRadius: "6px",
+                            color: "white",
+                            textDecoration: "none",
+                            fontSize: "12px"
+                        }}>
+                            New Request
+                        </Link>
+                    </header>
+                    {/* Mobile Tab Bar */}
+                    <div style={{
+                        position: "fixed",
+                        top: "48px",
+                        left: 0,
+                        right: 0,
+                        backgroundColor: "white",
+                        borderBottom: "1px solid #e2e8f0",
+                        display: "flex",
+                        overflowX: "auto",
+                        zIndex: 49
+                    }}>
+                        {[
+                            { id: "inquiries", label: "Inquiries" },
+                            { id: "quotes", label: "Quotes" },
+                            { id: "suppliers", label: "Suppliers" },
+                            { id: "profile", label: "Profile" },
+                        ].map((item) => (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveTab(item.id)}
+                                style={{
+                                    padding: "12px 16px",
+                                    fontSize: "13px",
+                                    fontWeight: activeTab === item.id ? "600" : "400",
+                                    color: activeTab === item.id ? "#3b82f6" : "#64748b",
+                                    backgroundColor: "transparent",
+                                    border: "none",
+                                    borderBottom: activeTab === item.id ? "2px solid #3b82f6" : "2px solid transparent",
+                                    cursor: "pointer",
+                                    whiteSpace: "nowrap"
+                                }}
+                            >
+                                {item.label}
+                            </button>
+                        ))}
+                    </div>
+                </>
+            )}
 
             {/* Main Content */}
-            <main style={{ marginLeft: "260px", flex: 1, padding: "24px" }}>
+            <main style={{ marginLeft: isMobile ? 0 : "260px", flex: 1, padding: isMobile ? "100px 16px 16px" : "24px" }}>
                 {/* Header */}
-                <header style={{ marginBottom: "32px" }}>
-                    <h1 style={{ fontSize: "24px", fontWeight: "bold", color: "#0f172a", marginBottom: "8px" }}>
+                <header style={{ marginBottom: isMobile ? "20px" : "32px" }}>
+                    <h1 style={{ fontSize: isMobile ? "20px" : "24px", fontWeight: "bold", color: "#0f172a", marginBottom: "8px" }}>
                         Welcome back!
                     </h1>
-                    <p style={{ color: "#64748b" }}>Source suppliers in under 5 minutes</p>
+                    <p style={{ color: "#64748b", fontSize: isMobile ? "13px" : "14px" }}>Source suppliers in under 5 minutes</p>
                 </header>
 
                 {/* Stats Cards */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "32px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: "16px", marginBottom: "32px" }}>
                     {[
                         { label: "Total Inquiries", value: mockStats.totalInquiries, color: "#3b82f6" },
                         { label: "Active Quotes", value: mockStats.activeQuotes, color: "#8b5cf6" },
@@ -209,8 +285,8 @@ export default function BuyerDashboard() {
                 {/* Inquiries Tab */}
                 {activeTab === "inquiries" && (
                     <div style={{ backgroundColor: "white", borderRadius: "16px", border: "1px solid #e2e8f0" }}>
-                        <div style={{ padding: "20px", borderBottom: "1px solid #e2e8f0" }}>
-                            <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#0f172a" }}>My Inquiries</h2>
+                        <div style={{ padding: isMobile ? "16px" : "20px", borderBottom: "1px solid #e2e8f0" }}>
+                            <h2 style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: "600", color: "#0f172a" }}>My Inquiries</h2>
                             <p style={{ fontSize: "13px", color: "#64748b" }}>Track your sourcing requests and responses</p>
                         </div>
 
@@ -219,16 +295,18 @@ export default function BuyerDashboard() {
                                 <div
                                     key={inquiry.id}
                                     style={{
-                                        padding: "20px",
+                                        padding: isMobile ? "16px" : "20px",
                                         borderBottom: "1px solid #f1f5f9",
                                         display: "flex",
+                                        flexDirection: isMobile ? "column" : "row",
                                         justifyContent: "space-between",
-                                        alignItems: "center"
+                                        alignItems: isMobile ? "flex-start" : "center",
+                                        gap: isMobile ? "12px" : "0"
                                     }}
                                 >
                                     <div>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-                                            <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>{inquiry.product}</h3>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}>
+                                            <h3 style={{ fontSize: isMobile ? "14px" : "16px", fontWeight: "600", color: "#0f172a" }}>{inquiry.product}</h3>
                                             <span style={{
                                                 padding: "2px 8px",
                                                 borderRadius: "10px",
@@ -239,10 +317,10 @@ export default function BuyerDashboard() {
                                                 {inquiry.status === "quoted" ? `${inquiry.responses} QUOTES` : inquiry.status.toUpperCase()}
                                             </span>
                                         </div>
-                                        <div style={{ display: "flex", gap: "24px", fontSize: "13px", color: "#64748b" }}>
+                                        <div style={{ display: "flex", gap: isMobile ? "12px" : "24px", fontSize: "13px", color: "#64748b", flexWrap: "wrap" }}>
                                             <span>Qty: {inquiry.quantity}</span>
                                             <span>Budget: {inquiry.budget}</span>
-                                            <span>Sent: {inquiry.sentAt}</span>
+                                            {!isMobile && <span>Sent: {inquiry.sentAt}</span>}
                                         </div>
                                     </div>
                                     <div style={{ display: "flex", gap: "8px" }}>

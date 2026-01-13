@@ -9,22 +9,22 @@ const colorClassMap = {
 
 function RollingTextItem({ item }) {
     return (
-        <div className="group relative w-full cursor-pointer border-b border-neutral-200 py-6">
+        <div className="group relative w-full cursor-pointer border-b border-neutral-200 py-4 md:py-6">
             {/* Rolling text */}
-            <div className="relative overflow-hidden h-[60px] md:h-20">
-                <div className="transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] group-hover:-translate-y-1/2">
+            <div className="relative overflow-hidden h-[50px] md:h-20">
+                <div className="transition-transform duration-500 ease-[cubic-bezier(0.76,0,0.24,1)] md:group-hover:-translate-y-1/2">
                     {/* State 1: Normal - Dark text for visibility */}
-                    <div className="h-[60px] md:h-20 flex items-center">
-                        <h2 className="text-4xl md:text-6xl font-black text-slate-900 uppercase tracking-tighter">
+                    <div className="h-[50px] md:h-20 flex items-center">
+                        <h2 className="text-3xl md:text-6xl font-black text-slate-900 uppercase tracking-tighter">
                             {item.title}
                         </h2>
                     </div>
 
-                    {/* State 2: Hover (Italic + Color) */}
-                    <div className="h-[60px] md:h-20 flex items-center">
+                    {/* State 2: Hover (Italic + Color) - Only on desktop */}
+                    <div className="h-[50px] md:h-20 hidden md:flex items-center">
                         <h2
                             className={cn(
-                                "text-4xl md:text-6xl font-black uppercase tracking-tighter italic",
+                                "text-3xl md:text-6xl font-black uppercase tracking-tighter italic",
                                 colorClassMap[item.color]
                             )}
                         >
@@ -34,23 +34,24 @@ function RollingTextItem({ item }) {
                 </div>
             </div>
 
-            {/* Category Label */}
-            <span className="absolute top-8 right-0 text-xs font-bold uppercase tracking-widest text-slate-400 transition-opacity duration-300 group-hover:opacity-0 hidden md:block">
+            {/* Category Label - Hidden on mobile */}
+            <span className="absolute top-6 md:top-8 right-0 text-xs font-bold uppercase tracking-widest text-slate-400 transition-opacity duration-300 md:group-hover:opacity-0 hidden md:block">
                 {item.category}
             </span>
 
-            {/* Description on hover */}
-            <p className="text-sm text-slate-500 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            {/* Description - Always visible on mobile, hover on desktop */}
+            <p className="text-sm text-slate-500 mt-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
                 {item.description}
             </p>
 
-            {/* Image Reveal Effect */}
+            {/* Image Reveal Effect - Desktop only */}
             <div
                 className={cn(
                     "pointer-events-none absolute right-0 top-1/2 z-20 h-32 w-48 -translate-y-1/2 overflow-hidden rounded-lg shadow-2xl",
                     "transition-all duration-500 ease-out",
                     "opacity-0 scale-95 rotate-3 translate-x-4",
-                    "group-hover:opacity-100 group-hover:scale-100 group-hover:rotate-0 group-hover:translate-x-0"
+                    "md:group-hover:opacity-100 md:group-hover:scale-100 md:group-hover:rotate-0 md:group-hover:translate-x-0",
+                    "hidden md:block"
                 )}
             >
                 <div className="relative h-full w-full">
@@ -126,11 +127,11 @@ function RollingTextList() {
     ];
 
     return (
-        <div className="mx-auto flex w-full max-w-3xl flex-col items-center justify-center px-4 py-12">
+        <div className="mx-auto flex w-full max-w-3xl flex-col items-center justify-center px-4 py-8 md:py-12">
             <h3 className="mb-2 text-sm font-bold uppercase tracking-widest text-slate-500">
                 What You Get With ChidiyaAI
             </h3>
-            <p className="mb-8 text-slate-400 text-center">
+            <p className="mb-6 md:mb-8 text-slate-400 text-center text-sm md:text-base">
                 Better than IndiaMart. Faster, smarter, and verified.
             </p>
             <div className="w-full flex flex-col">

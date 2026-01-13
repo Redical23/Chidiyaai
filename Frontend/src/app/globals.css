@@ -72,3 +72,63 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Mobile/Desktop visibility classes - CSS media queries for reliability */
+.hide-on-mobile {
+  display: block;
+}
+
+.show-on-mobile {
+  display: none !important;
+}
+
+.hide-on-desktop {
+  display: none;
+}
+
+.show-on-desktop {
+  display: block;
+}
+
+@media (max-width: 767px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  .show-on-mobile {
+    display: block !important;
+  }
+
+  .show-on-mobile-flex {
+    display: flex !important;
+  }
+
+  .hide-on-desktop {
+    display: block;
+  }
+
+  .show-on-desktop {
+    display: none !important;
+  }
+
+  /* Mobile grid utilities */
+  .mobile-grid-1 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .mobile-grid-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+
+  .mobile-padding {
+    padding: 16px !important;
+  }
+
+  .mobile-text-sm {
+    font-size: 14px !important;
+  }
+}
