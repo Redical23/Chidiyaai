@@ -31,18 +31,16 @@ export default function SuppliersPage() {
     const [suppliers, setSuppliers] = useState(mockSuppliers);
     const [selectedSupplier, setSelectedSupplier] = useState(null);
     const [showBadgeModal, setShowBadgeModal] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
-    const [mounted, setMounted] = useState(false);
+    const [windowWidth, setWindowWidth] = useState(1024);
 
     useEffect(() => {
-        setMounted(true);
-        const checkMobile = () => setIsMobile(window.innerWidth < 768);
-        checkMobile();
-        window.addEventListener("resize", checkMobile);
-        return () => window.removeEventListener("resize", checkMobile);
+        setWindowWidth(window.innerWidth);
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    const showMobile = mounted && isMobile;
+    const isMobile = windowWidth < 768;
     const filteredSuppliers = suppliers.filter(s => s.status === activeTab);
 
     const handleAction = (supplierId, action) => {
@@ -74,7 +72,7 @@ export default function SuppliersPage() {
         <div>
             {/* Header */}
             <div style={{ marginBottom: "24px" }}>
-                <h1 style={{ fontSize: showMobile ? "24px" : "28px", fontWeight: "bold", color: "white", marginBottom: "4px" }}>
+                <h1 style={{ fontSize: isMobile ? "24px" : "28px", fontWeight: "bold", color: "white", marginBottom: "4px" }}>
                     Supplier Management
                 </h1>
                 <p style={{ color: "#64748b", fontSize: "14px" }}>
@@ -145,14 +143,14 @@ export default function SuppliersPage() {
                         }}>
                             {/* Card Header */}
                             <div style={{
-                                padding: showMobile ? "16px" : "20px",
+                                padding: isMobile ? "16px" : "20px",
                                 borderBottom: "1px solid #334155"
                             }}>
                                 <div style={{
                                     display: "flex",
                                     justifyContent: "space-between",
-                                    alignItems: showMobile ? "flex-start" : "center",
-                                    flexDirection: showMobile ? "column" : "row",
+                                    alignItems: isMobile ? "flex-start" : "center",
+                                    flexDirection: isMobile ? "column" : "row",
                                     gap: "12px"
                                 }}>
                                     <div>
@@ -257,9 +255,9 @@ export default function SuppliersPage() {
 
                             {/* Card Details */}
                             <div style={{
-                                padding: showMobile ? "16px" : "20px",
+                                padding: isMobile ? "16px" : "20px",
                                 display: "grid",
-                                gridTemplateColumns: showMobile ? "1fr" : "repeat(3, 1fr)",
+                                gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
                                 gap: "16px"
                             }}>
                                 <div>

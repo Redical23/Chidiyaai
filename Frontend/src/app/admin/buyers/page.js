@@ -23,18 +23,17 @@ export default function BuyersPage() {
     const [activeTab, setActiveTab] = useState("all");
     const [buyers, setBuyers] = useState(mockBuyers);
     const [selectedBuyer, setSelectedBuyer] = useState(null);
-    const [isMobile, setIsMobile] = useState(false);
-    const [mounted, setMounted] = useState(false);
+    const [windowWidth, setWindowWidth] = useState(1024);
+
 
     useEffect(() => {
-        setMounted(true);
-        const checkMobile = () => setIsMobile(window.innerWidth < 768);
-        checkMobile();
-        window.addEventListener("resize", checkMobile);
-        return () => window.removeEventListener("resize", checkMobile);
+        setWindowWidth(window.innerWidth);
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    const showMobile = mounted && isMobile;
+    const isMobile = windowWidth < 768;
 
     const getFilteredBuyers = () => {
         if (activeTab === "all") return buyers.filter(b => b.status !== "restricted");
@@ -69,7 +68,7 @@ export default function BuyersPage() {
         <div>
             {/* Header */}
             <div style={{ marginBottom: "24px" }}>
-                <h1 style={{ fontSize: showMobile ? "24px" : "28px", fontWeight: "bold", color: "white", marginBottom: "4px" }}>
+                <h1 style={{ fontSize: isMobile ? "24px" : "28px", fontWeight: "bold", color: "white", marginBottom: "4px" }}>
                     Buyer Monitoring
                 </h1>
                 <p style={{ color: "#64748b", fontSize: "14px" }}>
@@ -80,7 +79,7 @@ export default function BuyersPage() {
             {/* Stats */}
             <div style={{
                 display: "grid",
-                gridTemplateColumns: showMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+                gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
                 gap: "12px",
                 marginBottom: "24px"
             }}>
@@ -150,13 +149,13 @@ export default function BuyersPage() {
                             backgroundColor: "#1e293b",
                             borderRadius: "12px",
                             border: "1px solid #334155",
-                            padding: showMobile ? "16px" : "20px"
+                            padding: isMobile ? "16px" : "20px"
                         }}>
                             <div style={{
                                 display: "flex",
                                 justifyContent: "space-between",
-                                alignItems: showMobile ? "flex-start" : "center",
-                                flexDirection: showMobile ? "column" : "row",
+                                alignItems: isMobile ? "flex-start" : "center",
+                                flexDirection: isMobile ? "column" : "row",
                                 gap: "12px"
                             }}>
                                 <div style={{ flex: 1 }}>

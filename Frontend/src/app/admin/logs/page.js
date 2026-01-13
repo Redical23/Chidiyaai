@@ -31,18 +31,17 @@ export default function AuditLogsPage() {
     const [logs, setLogs] = useState(mockLogs);
     const [filterType, setFilterType] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
-    const [isMobile, setIsMobile] = useState(false);
-    const [mounted, setMounted] = useState(false);
+    const [windowWidth, setWindowWidth] = useState(1024);
+
 
     useEffect(() => {
-        setMounted(true);
-        const checkMobile = () => setIsMobile(window.innerWidth < 768);
-        checkMobile();
-        window.addEventListener("resize", checkMobile);
-        return () => window.removeEventListener("resize", checkMobile);
+        setWindowWidth(window.innerWidth);
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    const showMobile = mounted && isMobile;
+    const isMobile = windowWidth < 768;
 
     const getFilteredLogs = () => {
         return logs.filter(log => {
@@ -88,7 +87,7 @@ export default function AuditLogsPage() {
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
                 <div>
-                    <h1 style={{ fontSize: showMobile ? "24px" : "28px", fontWeight: "bold", color: "white", marginBottom: "4px" }}>
+                    <h1 style={{ fontSize: isMobile ? "24px" : "28px", fontWeight: "bold", color: "white", marginBottom: "4px" }}>
                         Audit Logs
                     </h1>
                     <p style={{ color: "#64748b", fontSize: "14px" }}>
@@ -123,7 +122,7 @@ export default function AuditLogsPage() {
                 <div style={{
                     display: "flex",
                     gap: "12px",
-                    flexDirection: showMobile ? "column" : "row"
+                    flexDirection: isMobile ? "column" : "row"
                 }}>
                     {/* Search */}
                     <div style={{ flex: 1 }}>
@@ -171,7 +170,7 @@ export default function AuditLogsPage() {
             {/* Stats */}
             <div style={{
                 display: "grid",
-                gridTemplateColumns: showMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+                gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
                 gap: "12px",
                 marginBottom: "24px"
             }}>
@@ -212,13 +211,13 @@ export default function AuditLogsPage() {
                             borderRadius: "10px",
                             border: "1px solid #334155",
                             borderLeft: `4px solid ${getTypeColor(log.type)}`,
-                            padding: showMobile ? "14px" : "16px"
+                            padding: isMobile ? "14px" : "16px"
                         }}>
                             <div style={{
                                 display: "flex",
                                 justifyContent: "space-between",
-                                alignItems: showMobile ? "flex-start" : "center",
-                                flexDirection: showMobile ? "column" : "row",
+                                alignItems: isMobile ? "flex-start" : "center",
+                                flexDirection: isMobile ? "column" : "row",
                                 gap: "10px"
                             }}>
                                 <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", flex: 1 }}>
@@ -256,7 +255,7 @@ export default function AuditLogsPage() {
                                         </div>
                                     </div>
                                 </div>
-                                <div style={{ textAlign: showMobile ? "left" : "right", minWidth: showMobile ? "auto" : "120px" }}>
+                                <div style={{ textAlign: isMobile ? "left" : "right", minWidth: isMobile ? "auto" : "120px" }}>
                                     <div style={{ color: "#64748b", fontSize: "12px" }}>{log.timestamp}</div>
                                     <div style={{ color: "#475569", fontSize: "11px" }}>by {log.user}</div>
                                 </div>

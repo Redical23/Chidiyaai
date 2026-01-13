@@ -26,24 +26,22 @@ const aiAlerts = [
 ];
 
 export default function AdminDashboard() {
-    const [isMobile, setIsMobile] = useState(false);
-    const [mounted, setMounted] = useState(false);
+    const [windowWidth, setWindowWidth] = useState(1024);
 
     useEffect(() => {
-        setMounted(true);
-        const checkMobile = () => setIsMobile(window.innerWidth < 768);
-        checkMobile();
-        window.addEventListener("resize", checkMobile);
-        return () => window.removeEventListener("resize", checkMobile);
+        setWindowWidth(window.innerWidth);
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    const showMobile = mounted && isMobile;
+    const isMobile = windowWidth < 768;
 
     return (
         <div>
             {/* Header */}
             <div style={{ marginBottom: "24px" }}>
-                <h1 style={{ fontSize: showMobile ? "24px" : "28px", fontWeight: "bold", color: "white", marginBottom: "4px" }}>
+                <h1 style={{ fontSize: isMobile ? "22px" : "28px", fontWeight: "bold", color: "white", marginBottom: "4px" }}>
                     Dashboard
                 </h1>
                 <p style={{ color: "#64748b", fontSize: "14px" }}>
@@ -54,37 +52,25 @@ export default function AdminDashboard() {
             {/* Stats Cards */}
             <div style={{
                 display: "grid",
-                gridTemplateColumns: showMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
-                gap: "16px",
+                gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
+                gap: isMobile ? "12px" : "16px",
                 marginBottom: "24px"
             }}>
                 {stats.map((stat, i) => (
                     <Link key={i} href={stat.href} style={{ textDecoration: "none" }}>
                         <div style={{
                             backgroundColor: "#1e293b",
-                            padding: showMobile ? "16px" : "20px",
+                            padding: isMobile ? "14px" : "20px",
                             borderRadius: "12px",
-                            border: "1px solid #334155",
-                            cursor: "pointer",
-                            transition: "transform 0.2s"
+                            border: "1px solid #334155"
                         }}>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-                                <span style={{ fontSize: "24px" }}>{stat.icon}</span>
-                                <span style={{
-                                    padding: "4px 8px",
-                                    backgroundColor: `${stat.color}20`,
-                                    color: stat.color,
-                                    borderRadius: "6px",
-                                    fontSize: "11px",
-                                    fontWeight: "500"
-                                }}>
-                                    View
-                                </span>
+                                <span style={{ fontSize: isMobile ? "20px" : "24px" }}>{stat.icon}</span>
                             </div>
-                            <div style={{ fontSize: showMobile ? "28px" : "32px", fontWeight: "bold", color: stat.color, marginBottom: "4px" }}>
+                            <div style={{ fontSize: isMobile ? "24px" : "32px", fontWeight: "bold", color: stat.color, marginBottom: "4px" }}>
                                 {stat.value}
                             </div>
-                            <div style={{ fontSize: "13px", color: "#94a3b8" }}>{stat.label}</div>
+                            <div style={{ fontSize: isMobile ? "11px" : "13px", color: "#94a3b8" }}>{stat.label}</div>
                         </div>
                     </Link>
                 ))}
@@ -93,18 +79,18 @@ export default function AdminDashboard() {
             {/* Main Grid */}
             <div style={{
                 display: "grid",
-                gridTemplateColumns: showMobile ? "1fr" : "1fr 1fr",
-                gap: "24px"
+                gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+                gap: isMobile ? "16px" : "24px"
             }}>
                 {/* AI Alerts */}
                 <div style={{
                     backgroundColor: "#1e293b",
                     borderRadius: "16px",
                     border: "1px solid #334155",
-                    padding: "20px"
+                    padding: isMobile ? "16px" : "20px"
                 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-                        <h2 style={{ fontSize: "18px", fontWeight: "600", color: "white" }}>🤖 AI Alerts</h2>
+                        <h2 style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: "600", color: "white" }}>🤖 AI Alerts</h2>
                         <span style={{
                             padding: "4px 10px",
                             backgroundColor: "#ef444420",
@@ -119,14 +105,14 @@ export default function AdminDashboard() {
                     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         {aiAlerts.map((alert) => (
                             <div key={alert.id} style={{
-                                padding: "14px",
+                                padding: isMobile ? "12px" : "14px",
                                 backgroundColor: "#0f172a",
                                 borderRadius: "10px",
                                 borderLeft: `3px solid ${alert.severity === "high" ? "#ef4444" :
                                         alert.severity === "medium" ? "#f59e0b" : "#3b82f6"
                                     }`
                             }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+                                <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "flex-start", gap: "12px" }}>
                                     <div>
                                         <div style={{ color: "white", fontSize: "14px", fontWeight: "500", marginBottom: "4px" }}>
                                             {alert.title}
@@ -141,7 +127,8 @@ export default function AdminDashboard() {
                                         color: "white",
                                         fontSize: "12px",
                                         cursor: "pointer",
-                                        whiteSpace: "nowrap"
+                                        whiteSpace: "nowrap",
+                                        alignSelf: isMobile ? "flex-start" : "auto"
                                     }}>
                                         {alert.action}
                                     </button>
@@ -156,16 +143,16 @@ export default function AdminDashboard() {
                     backgroundColor: "#1e293b",
                     borderRadius: "16px",
                     border: "1px solid #334155",
-                    padding: "20px"
+                    padding: isMobile ? "16px" : "20px"
                 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-                        <h2 style={{ fontSize: "18px", fontWeight: "600", color: "white" }}>📋 Recent Activity</h2>
+                        <h2 style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: "600", color: "white" }}>📋 Recent Activity</h2>
                         <Link href="/admin/logs" style={{ color: "#3b82f6", fontSize: "13px", textDecoration: "none" }}>
                             View All
                         </Link>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                        {recentActivity.map((activity) => (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        {recentActivity.slice(0, isMobile ? 3 : 5).map((activity) => (
                             <div key={activity.id} style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -174,10 +161,10 @@ export default function AdminDashboard() {
                                 backgroundColor: "#0f172a",
                                 borderRadius: "10px"
                             }}>
-                                <span style={{ fontSize: "18px" }}>{activity.icon}</span>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ color: "white", fontSize: "14px" }}>{activity.message}</div>
-                                    <div style={{ color: "#64748b", fontSize: "12px" }}>{activity.time}</div>
+                                <span style={{ fontSize: "16px" }}>{activity.icon}</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ color: "white", fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{activity.message}</div>
+                                    <div style={{ color: "#64748b", fontSize: "11px" }}>{activity.time}</div>
                                 </div>
                             </div>
                         ))}
@@ -191,12 +178,12 @@ export default function AdminDashboard() {
                 backgroundColor: "#1e293b",
                 borderRadius: "16px",
                 border: "1px solid #334155",
-                padding: "20px"
+                padding: isMobile ? "16px" : "20px"
             }}>
-                <h2 style={{ fontSize: "18px", fontWeight: "600", color: "white", marginBottom: "16px" }}>⚡ Quick Actions</h2>
+                <h2 style={{ fontSize: isMobile ? "16px" : "18px", fontWeight: "600", color: "white", marginBottom: "16px" }}>⚡ Quick Actions</h2>
                 <div style={{
-                    display: "flex",
-                    flexWrap: "wrap",
+                    display: "grid",
+                    gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)",
                     gap: "12px"
                 }}>
                     {[
@@ -206,14 +193,16 @@ export default function AdminDashboard() {
                         { label: "Export Audit Logs", href: "/admin/logs", color: "#3b82f6" },
                     ].map((action, i) => (
                         <Link key={i} href={action.href} style={{
-                            padding: "12px 20px",
+                            display: "block",
+                            padding: "14px",
                             backgroundColor: `${action.color}20`,
                             color: action.color,
                             border: `1px solid ${action.color}40`,
                             borderRadius: "8px",
                             fontSize: "14px",
                             fontWeight: "500",
-                            textDecoration: "none"
+                            textDecoration: "none",
+                            textAlign: "center"
                         }}>
                             {action.label}
                         </Link>

@@ -25,18 +25,17 @@ export default function CategoriesPage() {
         mandatoryFields: [{ name: "Product Name", type: "Text", required: true }],
         validationRules: ["Minimum 3 characters for product name"]
     });
-    const [isMobile, setIsMobile] = useState(false);
-    const [mounted, setMounted] = useState(false);
+    const [windowWidth, setWindowWidth] = useState(1024);
+
 
     useEffect(() => {
-        setMounted(true);
-        const checkMobile = () => setIsMobile(window.innerWidth < 768);
-        checkMobile();
-        window.addEventListener("resize", checkMobile);
-        return () => window.removeEventListener("resize", checkMobile);
+        setWindowWidth(window.innerWidth);
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    const showMobile = mounted && isMobile;
+    const isMobile = windowWidth < 768;
 
     const openAddModal = () => {
         setEditingCategory(null);
@@ -116,7 +115,7 @@ export default function CategoriesPage() {
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
                 <div>
-                    <h1 style={{ fontSize: showMobile ? "24px" : "28px", fontWeight: "bold", color: "white", marginBottom: "4px" }}>
+                    <h1 style={{ fontSize: isMobile ? "24px" : "28px", fontWeight: "bold", color: "white", marginBottom: "4px" }}>
                         Category Management
                     </h1>
                     <p style={{ color: "#64748b", fontSize: "14px" }}>
@@ -143,7 +142,7 @@ export default function CategoriesPage() {
             {/* Category Grid */}
             <div style={{
                 display: "grid",
-                gridTemplateColumns: showMobile ? "1fr" : "repeat(3, 1fr)",
+                gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
                 gap: "16px"
             }}>
                 {categories.map((category) => (
