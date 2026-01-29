@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 
 export default function SupplierLanding() {
@@ -30,8 +31,8 @@ export default function SupplierLanding() {
                 zIndex: 50
             }}>
                 <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <Link href="/" style={{ fontWeight: "bold", fontSize: "20px", color: "#0f172a", textDecoration: "none" }}>
-                        Chidiya<span style={{ color: "#3b82f6" }}>AI</span>
+                    <Link href="/" style={{ display: "flex", alignItems: "center" }}>
+                        <Image src="/assests/chidiyaailogo.png" alt="ChidiyaAI" width={120} height={40} style={{ height: "40px", width: "auto" }} />
                     </Link>
 
                     {/* Desktop Nav */}
@@ -107,9 +108,21 @@ export default function SupplierLanding() {
                     <h1 style={{ fontSize: isMobile ? "32px" : "48px", fontWeight: "bold", color: "white", marginBottom: "20px", lineHeight: "1.2" }}>
                         Become a Verified Partner at ChidiyaAI
                     </h1>
-                    <p style={{ fontSize: isMobile ? "16px" : "20px", color: "#94a3b8", marginBottom: "40px", lineHeight: "1.6" }}>
+                    <p style={{ fontSize: isMobile ? "16px" : "20px", color: "#94a3b8", marginBottom: "16px", lineHeight: "1.6" }}>
                         Get access to quality leads from verified buyers. No spam, no fake inquiries — only AI-validated business opportunities.
                     </p>
+                    <div style={{
+                        display: "inline-block",
+                        padding: "10px 20px",
+                        backgroundColor: "rgba(34,197,94,0.2)",
+                        color: "#4ade80",
+                        borderRadius: "8px",
+                        fontSize: "16px",
+                        fontWeight: "600",
+                        marginBottom: "32px"
+                    }}>
+                        🎉 Free for 6 months, then ₹2,999/month
+                    </div>
                     <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexDirection: isMobile ? "column" : "row" }}>
                         <Link href="/supplier/register" style={{
                             backgroundColor: "#3b82f6",

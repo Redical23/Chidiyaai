@@ -11,11 +11,17 @@ export default function SupplierRegister() {
         password: "",
         confirmPassword: "",
         productCategories: [],
+        otherCategory: "",
         capacity: "",
+        otherCapacity: "",
         moq: "",
-        serviceLocations: "",
+        serviceLocation: "",
+        otherLocation: "",
     });
     const [step, setStep] = useState(1);
+    const [showOtherCategory, setShowOtherCategory] = useState(false);
+    const [showOtherCapacity, setShowOtherCapacity] = useState(false);
+    const [showOtherLocation, setShowOtherLocation] = useState(false);
 
     const categories = [
         "Textiles & Fabrics",
@@ -29,16 +35,76 @@ export default function SupplierRegister() {
         "Other"
     ];
 
+    const capacityOptions = [
+        "Up to ₹5 Lakh",
+        "₹5 Lakh - ₹25 Lakh",
+        "₹25 Lakh - ₹1 Crore",
+        "₹1 Crore - ₹5 Crore",
+        "₹5 Crore+",
+        "Other"
+    ];
+
+    const locationOptions = [
+        "Pan India",
+        "Delhi NCR",
+        "Mumbai",
+        "Bangalore",
+        "Chennai",
+        "Kolkata",
+        "Hyderabad",
+        "Pune",
+        "Ahmedabad",
+        "Jaipur",
+        "Lucknow",
+        "North India",
+        "South India",
+        "West India",
+        "East India",
+        "Other"
+    ];
+
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const handleCategoryToggle = (cat) => {
+        if (cat === "Other") {
+            setShowOtherCategory(!showOtherCategory);
+            if (showOtherCategory) {
+                // Remove Other from categories when hiding
+                setFormData({
+                    ...formData,
+                    productCategories: formData.productCategories.filter(c => c !== "Other"),
+                    otherCategory: ""
+                });
+            }
+            return;
+        }
         const current = formData.productCategories;
         if (current.includes(cat)) {
             setFormData({ ...formData, productCategories: current.filter(c => c !== cat) });
         } else {
             setFormData({ ...formData, productCategories: [...current, cat] });
+        }
+    };
+
+    const handleLocationChange = (value) => {
+        if (value === "Other") {
+            setShowOtherLocation(true);
+            setFormData({ ...formData, serviceLocation: "Other" });
+        } else {
+            setShowOtherLocation(false);
+            setFormData({ ...formData, serviceLocation: value, otherLocation: "" });
+        }
+    };
+
+    const handleCapacityChange = (value) => {
+        if (value === "Other") {
+            setShowOtherCapacity(true);
+            setFormData({ ...formData, capacity: "Other" });
+        } else {
+            setShowOtherCapacity(false);
+            setFormData({ ...formData, capacity: value, otherCapacity: "" });
         }
     };
 
@@ -51,10 +117,26 @@ export default function SupplierRegister() {
         setError("");
 
         try {
+            // Prepare data for API
+            const submitData = {
+                ...formData,
+                // Convert serviceLocation to string for API
+                serviceLocations: formData.serviceLocation === "Other"
+                    ? formData.otherLocation
+                    : formData.serviceLocation,
+                action: "register"
+            };
+            // Remove frontend-only fields
+            delete submitData.otherCategory;
+            delete submitData.otherCapacity;
+            delete submitData.otherLocation;
+            delete submitData.serviceLocation;
+            delete submitData.confirmPassword;
+
             const res = await fetch("/api/supplier/auth", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...formData, action: "register" }),
+                body: JSON.stringify(submitData),
             });
 
             const data = await res.json();
@@ -129,7 +211,9 @@ export default function SupplierRegister() {
                                         border: "1px solid #e2e8f0",
                                         borderRadius: "8px",
                                         fontSize: "14px",
-                                        boxSizing: "border-box"
+                                        boxSizing: "border-box",
+                                        color: "#0f172a",
+                                        backgroundColor: "white"
                                     }}
                                 />
                             </div>
@@ -151,7 +235,9 @@ export default function SupplierRegister() {
                                         border: "1px solid #e2e8f0",
                                         borderRadius: "8px",
                                         fontSize: "14px",
-                                        boxSizing: "border-box"
+                                        boxSizing: "border-box",
+                                        color: "#0f172a",
+                                        backgroundColor: "white"
                                     }}
                                 />
                             </div>
@@ -173,7 +259,9 @@ export default function SupplierRegister() {
                                         border: "1px solid #e2e8f0",
                                         borderRadius: "8px",
                                         fontSize: "14px",
-                                        boxSizing: "border-box"
+                                        boxSizing: "border-box",
+                                        color: "#0f172a",
+                                        backgroundColor: "white"
                                     }}
                                 />
                             </div>
@@ -195,7 +283,9 @@ export default function SupplierRegister() {
                                         border: "1px solid #e2e8f0",
                                         borderRadius: "8px",
                                         fontSize: "14px",
-                                        boxSizing: "border-box"
+                                        boxSizing: "border-box",
+                                        color: "#0f172a",
+                                        backgroundColor: "white"
                                     }}
                                 />
                             </div>
@@ -219,6 +309,20 @@ export default function SupplierRegister() {
                             >
                                 Continue
                             </button>
+
+                            <Link
+                                href="/"
+                                style={{
+                                    display: "block",
+                                    textAlign: "center",
+                                    marginTop: "16px",
+                                    fontSize: "14px",
+                                    color: "#64748b",
+                                    textDecoration: "none"
+                                }}
+                            >
+                                ← Back to Home
+                            </Link>
                         </div>
                     )}
 
@@ -248,6 +352,26 @@ export default function SupplierRegister() {
                                         </button>
                                     ))}
                                 </div>
+                                {showOtherCategory && (
+                                    <input
+                                        type="text"
+                                        name="otherCategory"
+                                        value={formData.otherCategory}
+                                        onChange={handleChange}
+                                        placeholder="Specify your category..."
+                                        style={{
+                                            width: "100%",
+                                            padding: "12px",
+                                            border: "1px solid #3b82f6",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            boxSizing: "border-box",
+                                            marginTop: "12px",
+                                            color: "#0f172a",
+                                            backgroundColor: "white"
+                                        }}
+                                    />
+                                )}
                             </div>
 
                             <div>
@@ -257,22 +381,42 @@ export default function SupplierRegister() {
                                 <select
                                     name="capacity"
                                     value={formData.capacity}
-                                    onChange={handleChange}
+                                    onChange={(e) => handleCapacityChange(e.target.value)}
                                     style={{
                                         width: "100%",
                                         padding: "12px",
                                         border: "1px solid #e2e8f0",
                                         borderRadius: "8px",
                                         fontSize: "14px",
-                                        backgroundColor: "white"
+                                        backgroundColor: "white",
+                                        color: "#0f172a"
                                     }}
                                 >
                                     <option value="">Select capacity</option>
-                                    <option value="small">Up to ₹5 Lakh</option>
-                                    <option value="medium">₹5 Lakh - ₹25 Lakh</option>
-                                    <option value="large">₹25 Lakh - ₹1 Crore</option>
-                                    <option value="enterprise">₹1 Crore+</option>
+                                    {capacityOptions.map((opt) => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                    ))}
                                 </select>
+                                {showOtherCapacity && (
+                                    <input
+                                        type="text"
+                                        name="otherCapacity"
+                                        value={formData.otherCapacity}
+                                        onChange={handleChange}
+                                        placeholder="Specify your monthly capacity..."
+                                        style={{
+                                            width: "100%",
+                                            padding: "12px",
+                                            border: "1px solid #3b82f6",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            boxSizing: "border-box",
+                                            marginTop: "12px",
+                                            color: "#0f172a",
+                                            backgroundColor: "white"
+                                        }}
+                                    />
+                                )}
                             </div>
 
                             <div>
@@ -291,30 +435,56 @@ export default function SupplierRegister() {
                                         border: "1px solid #e2e8f0",
                                         borderRadius: "8px",
                                         fontSize: "14px",
-                                        boxSizing: "border-box"
+                                        boxSizing: "border-box",
+                                        color: "#0f172a",
+                                        backgroundColor: "white"
                                     }}
                                 />
                             </div>
 
                             <div>
                                 <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "6px" }}>
-                                    Service Locations
+                                    Service Location *
                                 </label>
-                                <input
-                                    type="text"
-                                    name="serviceLocations"
-                                    value={formData.serviceLocations}
-                                    onChange={handleChange}
-                                    placeholder="e.g., Delhi NCR, Mumbai, Pan India"
+                                <select
+                                    name="serviceLocation"
+                                    value={formData.serviceLocation}
+                                    onChange={(e) => handleLocationChange(e.target.value)}
                                     style={{
                                         width: "100%",
                                         padding: "12px",
                                         border: "1px solid #e2e8f0",
                                         borderRadius: "8px",
                                         fontSize: "14px",
-                                        boxSizing: "border-box"
+                                        backgroundColor: "white",
+                                        color: "#0f172a"
                                     }}
-                                />
+                                >
+                                    <option value="">Select location</option>
+                                    {locationOptions.map((loc) => (
+                                        <option key={loc} value={loc}>{loc}</option>
+                                    ))}
+                                </select>
+                                {showOtherLocation && (
+                                    <input
+                                        type="text"
+                                        name="otherLocation"
+                                        value={formData.otherLocation}
+                                        onChange={handleChange}
+                                        placeholder="Specify your location..."
+                                        style={{
+                                            width: "100%",
+                                            padding: "12px",
+                                            border: "1px solid #3b82f6",
+                                            borderRadius: "8px",
+                                            fontSize: "14px",
+                                            boxSizing: "border-box",
+                                            marginTop: "12px",
+                                            color: "#0f172a",
+                                            backgroundColor: "white"
+                                        }}
+                                    />
+                                )}
                             </div>
 
                             <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
@@ -325,6 +495,7 @@ export default function SupplierRegister() {
                                         flex: 1,
                                         padding: "14px",
                                         backgroundColor: "white",
+                                        color: "#0f172a",
                                         border: "1px solid #e2e8f0",
                                         borderRadius: "8px",
                                         fontSize: "16px",
@@ -352,6 +523,14 @@ export default function SupplierRegister() {
                                     Continue to KYC
                                 </button>
                             </div>
+
+                            {/* Terms and Privacy Links */}
+                            <p style={{ textAlign: "center", marginTop: "20px", fontSize: "12px", color: "#94a3b8" }}>
+                                By registering, you agree to our{" "}
+                                <Link href="/terms/supplier" style={{ color: "#64748b", textDecoration: "underline" }}>Supplier Terms</Link>
+                                {" "}and{" "}
+                                <Link href="/privacy" style={{ color: "#64748b", textDecoration: "underline" }}>Privacy Policy</Link>
+                            </p>
                         </div>
                     )}
                 </form>

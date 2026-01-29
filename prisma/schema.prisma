@@ -93,7 +93,8 @@ model Supplier {
   
   // Verification
   status            String   @default("pending") // pending, approved, suspended, banned
-  badges            String[] // gst, premium, verified, etc.
+  badges            String[] // gst, premium, verified, top_rated, fast_delivery
+  suspendedUntil    DateTime? // For time-based suspensions
   documents         SupplierDocument[]
   
   // Timestamps
@@ -110,6 +111,7 @@ model Supplier {
   inquiries         Inquiry[]
   quotes            Quote[]
   products          Product[]
+  ratings           SupplierRating[]
 
   @@map("suppliers")
 }
@@ -176,15 +178,100 @@ model Buyer {
   // Stats
   inquiryCount  Int      @default(0)
   
+  // Subscription
+  isSubscribed       Boolean   @default(false)
+  subscriptionExpiry DateTime?
+  razorpayOrderId    String?
+  dailyQueryCount    Int       @default(0)
+  lastQueryDate      DateTime?
+  
   // Timestamps
   lastActive    DateTime @default(now())
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   // Relations
-  inquiries     Inquiry[]
+  inquiries       Inquiry[]
+  chatSessions    ChatSession[]
+  savedSuppliers  SavedSupplier[]
+  contactLogs     SupplierContactLog[]
+  ratings         SupplierRating[]
 
   @@map("buyers")
+}
+
+
+// ============================================
+// CHAT MODELS
+// ============================================
+
+model ChatSession {
+  id            String   @id @default(uuid())
+  buyerId       String
+  
+  // Requirements from questionnaire
+  location      String?
+  category      String?
+  quantity      String?
+  budget        String?
+  
+  // Status
+  status        String   @default("active") // active, completed
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  buyer         Buyer    @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  messages      ChatMessage[]
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id          String      @id @default(uuid())
+  sessionId   String
+  role        String      // user, assistant
+  content     String
+  
+  // For supplier results
+  hasSuppliers Boolean    @default(false)
+  supplierIds  String[]   // Array of supplier IDs shown
+  
+  createdAt   DateTime    @default(now())
+
+  // Relations
+  session     ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+model SavedSupplier {
+  id          String   @id @default(uuid())
+  buyerId     String
+  supplierId  String
+  notes       String?
+  savedAt     DateTime @default(now())
+
+  // Relations
+  buyer       Buyer    @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+
+  @@unique([buyerId, supplierId])
+  @@map("saved_suppliers")
+}
+
+model SupplierContactLog {
+  id          String   @id @default(uuid())
+  buyerId     String
+  supplierId  String
+  sessionId   String?  // Which chat session this came from
+  viewedAt    DateTime @default(now())
+
+  // Relations
+  buyer       Buyer    @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_contact_logs")
 }
 
 // ============================================
@@ -257,4 +344,24 @@ model Quote {
   supplier    Supplier @relation(fields: [supplierId], references: [id])
 
   @@map("quotes")
+}
+
+// ============================================
+// RATING MODEL
+// ============================================
+
+model SupplierRating {
+  id          String   @id @default(uuid())
+  supplierId  String
+  buyerId     String
+  rating      Int      // 1-5 stars
+  review      String?
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  supplier    Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  buyer       Buyer    @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  
+  @@unique([supplierId, buyerId])
+  @@map("supplier_ratings")
 }

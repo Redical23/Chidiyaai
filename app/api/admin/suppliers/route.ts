@@ -7,44 +7,82 @@ export async function GET() {
             orderBy: { createdAt: "desc" },
             include: {
                 documents: true,
+                products: true
             }
         });
         return NextResponse.json(suppliers);
     } catch (error) {
+        console.error("Fetch Suppliers Error:", error);
         return NextResponse.json({ error: "Failed to fetch suppliers" }, { status: 500 });
     }
 }
 
 export async function PUT(req: Request) {
     try {
-        const { id, action, badges } = await req.json();
+        const { id, action, badges, suspensionDays } = await req.json();
 
-        let updateData = {};
+        let updateData: any = {};
         let logMessage = "";
+        let logAction = action;
 
-        if (action === "approve") {
-            updateData = { status: "approved" };
-            logMessage = `Approved supplier`;
-        } else if (action === "suspend") {
-            updateData = { status: "suspended" };
-            logMessage = `Suspended supplier`;
-        } else if (action === "restore") {
-            updateData = { status: "approved" };
-            logMessage = `Restored supplier`;
-        } else if (action === "update_badges") {
-            updateData = { badges };
-            logMessage = `Updated badges`;
+        switch (action) {
+            case "approve":
+                updateData = { status: "approved", suspendedUntil: null };
+                logMessage = "Approved supplier";
+                break;
+
+            case "reject":
+                // Rollback - move back to pending
+                updateData = { status: "pending", suspendedUntil: null };
+                logMessage = "Rejected/Rolled back supplier to pending";
+                logAction = "rollback";
+                break;
+
+            case "suspend":
+                // Calculate suspension end date
+                const days = suspensionDays || 7;
+                const suspendedUntil = new Date();
+                suspendedUntil.setDate(suspendedUntil.getDate() + days);
+
+                updateData = {
+                    status: "suspended",
+                    suspendedUntil: suspendedUntil
+                };
+                logMessage = `Suspended supplier for ${days} days`;
+                break;
+
+            case "ban":
+                updateData = { status: "banned", suspendedUntil: null };
+                logMessage = "Permanently banned supplier";
+                break;
+
+            case "restore":
+                updateData = { status: "approved", suspendedUntil: null };
+                logMessage = "Restored supplier";
+                break;
+
+            case "update_badges":
+                updateData = { badges: badges || [] };
+                logMessage = `Updated badges: ${(badges || []).join(", ") || "none"}`;
+                break;
+
+            default:
+                return NextResponse.json({ error: "Invalid action" }, { status: 400 });
         }
 
         const supplier = await prisma.supplier.update({
             where: { id },
             data: updateData,
+            include: {
+                documents: true,
+                products: true
+            }
         });
 
         // Log activity
         await prisma.activityLog.create({
             data: {
-                action: action,
+                action: logAction,
                 entityType: "supplier",
                 entityId: id,
                 message: `${logMessage}: ${supplier.companyName}`

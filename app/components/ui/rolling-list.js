@@ -74,7 +74,7 @@ function RollingTextList() {
             id: 1,
             title: "Verified",
             category: "Trust",
-            description: "Every supplier is GST-verified and vetted by our team.",
+            description: "Verified supplier and rigorously reviewed for quality, credibility, and reliability.",
             src: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&auto=format&fit=crop&q=60",
             alt: "GST Verified Suppliers",
             color: "blue",
@@ -83,7 +83,7 @@ function RollingTextList() {
             id: 2,
             title: "Savings",
             category: "ROI",
-            description: "Our users save an average of ₹50,000 per month on sourcing.",
+            description: "Discover better prices and reduce sourcing costs automatically.",
             src: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=400&auto=format&fit=crop&q=60",
             alt: "Save money on sourcing",
             color: "blue",
@@ -92,7 +92,7 @@ function RollingTextList() {
             id: 3,
             title: "Fast",
             category: "Speed",
-            description: "Get matched in minutes, not days. AI does the heavy lifting.",
+            description: "Get matched in minute, AI handles the heavy lifting so you move faster.",
             src: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&auto=format&fit=crop&q=60",
             alt: "10x faster matching",
             color: "blue",
@@ -101,7 +101,7 @@ function RollingTextList() {
             id: 4,
             title: "Alerts",
             category: "Updates",
-            description: "Never miss a deal. Get notified when prices drop.",
+            description: "Never miss a deal. Get notified automatically when prices drop.",
             src: "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?w=400&auto=format&fit=crop&q=60",
             alt: "Price drop alerts",
             color: "blue",
@@ -110,7 +110,7 @@ function RollingTextList() {
             id: 5,
             title: "Compare",
             category: "Analysis",
-            description: "Side-by-side price and quality comparisons.",
+            description: "Compare prices. Pick better.",
             src: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&auto=format&fit=crop&q=60",
             alt: "Compare suppliers",
             color: "blue",
@@ -119,7 +119,7 @@ function RollingTextList() {
             id: 6,
             title: "Private",
             category: "Security",
-            description: "Your data is never sold. Direct supplier connections.",
+            description: "We never share your phone number with any suppliers.",
             src: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400&auto=format&fit=crop&q=60",
             alt: "Privacy first platform",
             color: "blue",
@@ -129,10 +129,10 @@ function RollingTextList() {
     return (
         <div className="mx-auto flex w-full max-w-3xl flex-col items-center justify-center px-4 py-8 md:py-12">
             <h3 className="mb-2 text-sm font-bold uppercase tracking-widest text-slate-500">
-                What You Get With ChidiyaAI
+                Let your agent do the work
             </h3>
             <p className="mb-6 md:mb-8 text-slate-400 text-center text-sm md:text-base">
-                Better than IndiaMart. Faster, smarter, and verified.
+                ChidiyaAI monitors opportunities and delivers personally matched deals — automatically.
             </p>
             <div className="w-full flex flex-col">
                 {items.map((item) => (

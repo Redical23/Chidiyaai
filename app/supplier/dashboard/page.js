@@ -69,15 +69,40 @@ export default function SupplierDashboard() {
     const [showAddProductModal, setShowAddProductModal] = useState(false);
     const [productForm, setProductForm] = useState({
         name: "",
-        category: "",
+        localName: "",  // Local/Common Name (optional)
+        category: "",   // Strict dropdown
         description: "",
-        priceRange: "",
-        moq: "",
-        leadTime: "",
+        minPrice: "",
+        maxPrice: "",
+        priceUnit: "piece",  // piece, box, meter, kg
+        moq: "",        // Number only
+        leadTime: "7-10 days",  // Dropdown
+        // Checkboxes
+        materials: [],   // Paper, Kraft, Duplex
+        usage: [],       // Packaging, Shipping, Storage
+        strength: [],    // Light, Medium, Heavy
         images: []
     });
     const [productSaving, setProductSaving] = useState(false);
     const [productImagePreviews, setProductImagePreviews] = useState([]);
+
+    // Product form options
+    const categoryOptions = [
+        "Corrugated Boxes",
+        "Paper Cups",
+        "Bubble Wrap",
+        "BOPP Tapes",
+        "Shipping Bags",
+        "Packaging Foam",
+        "Cardboard Sheets",
+        "Kraft Paper",
+        "Other"
+    ];
+    const materialOptions = ["Paper", "Kraft", "Duplex", "Plastic", "Foam"];
+    const usageOptions = ["Packaging", "Shipping", "Storage", "Display"];
+    const strengthOptions = ["Light", "Medium", "Heavy"];
+    const priceUnitOptions = ["piece", "box", "meter", "kg", "pack"];
+    const leadTimeOptions = ["3-5 days", "7-10 days", "15-20 days", "Custom"];
 
     useEffect(() => {
         fetchDashboardData();
@@ -286,16 +311,19 @@ export default function SupplierDashboard() {
     const handleAddProduct = async (e) => {
         e.preventDefault();
         setProductSaving(true);
+
+        const isEditing = !!productForm.id;
+
         try {
             const res = await fetch("/api/supplier/products", {
-                method: "POST",
+                method: isEditing ? "PUT" : "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(productForm),
             });
             const data = await res.json();
 
             if (res.ok) {
-                showNotification("Product added successfully!", "success");
+                showNotification(isEditing ? "Product updated successfully!" : "Product added successfully!", "success");
                 setShowAddProductModal(false);
                 setProductForm({
                     name: "",
@@ -309,13 +337,51 @@ export default function SupplierDashboard() {
                 setProductImagePreviews([]);
                 fetchDashboardData();
             } else {
-                showNotification(data.error || "Failed to add product", "error");
+                showNotification(data.error || `Failed to ${isEditing ? "update" : "add"} product`, "error");
             }
         } catch (error) {
-            console.error("Failed to add product", error);
-            showNotification("Failed to add product", "error");
+            console.error(`Failed to ${isEditing ? "update" : "add"} product`, error);
+            showNotification(`Failed to ${isEditing ? "update" : "add"} product`, "error");
         } finally {
             setProductSaving(false);
+        }
+    };
+
+    const handleEditProduct = (product) => {
+        setProductForm({
+            id: product.id,
+            name: product.name || "",
+            category: product.category || "",
+            description: product.description || "",
+            priceRange: product.priceRange || "",
+            moq: product.moq || "",
+            leadTime: product.leadTime || "",
+            images: product.images || []
+        });
+        setProductImagePreviews(product.images || []);
+        setShowAddProductModal(true);
+    };
+
+    const handleDeleteProduct = async (productId) => {
+        if (!confirm("Are you sure you want to delete this product?")) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/supplier/products?id=${productId}`, {
+                method: "DELETE",
+            });
+
+            if (res.ok) {
+                showNotification("Product deleted successfully!", "success");
+                fetchDashboardData();
+            } else {
+                const data = await res.json();
+                showNotification(data.error || "Failed to delete product", "error");
+            }
+        } catch (error) {
+            console.error("Failed to delete product", error);
+            showNotification("Failed to delete product", "error");
         }
     };
 
@@ -1098,9 +1164,51 @@ export default function SupplierDashboard() {
                                         <div style={{ padding: "16px" }}>
                                             <h4 style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a", marginBottom: "4px" }}>{product.name}</h4>
                                             <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "8px" }}>{product.category}</p>
-                                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
+                                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", marginBottom: "12px" }}>
                                                 <span style={{ color: "#64748b" }}>MOQ: {product.moq}</span>
                                                 <span style={{ fontWeight: "600", color: "#22c55e" }}>{product.priceRange}</span>
+                                            </div>
+                                            <div style={{ display: "flex", gap: "8px" }}>
+                                                <button
+                                                    onClick={() => handleEditProduct(product)}
+                                                    style={{
+                                                        flex: 1,
+                                                        padding: "8px",
+                                                        backgroundColor: "#f1f5f9",
+                                                        color: "#0f172a",
+                                                        border: "none",
+                                                        borderRadius: "6px",
+                                                        fontSize: "12px",
+                                                        fontWeight: "500",
+                                                        cursor: "pointer",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        gap: "4px"
+                                                    }}
+                                                >
+                                                    ✏️ Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteProduct(product.id)}
+                                                    style={{
+                                                        flex: 1,
+                                                        padding: "8px",
+                                                        backgroundColor: "#fef2f2",
+                                                        color: "#dc2626",
+                                                        border: "none",
+                                                        borderRadius: "6px",
+                                                        fontSize: "12px",
+                                                        fontWeight: "500",
+                                                        cursor: "pointer",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        gap: "4px"
+                                                    }}
+                                                >
+                                                    🗑️ Delete
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -1478,166 +1586,284 @@ export default function SupplierDashboard() {
                             overflowY: "auto"
                         }}>
                             <h2 style={{ fontSize: "20px", fontWeight: "bold", color: "#0f172a", marginBottom: "8px" }}>
-                                Add New Product
+                                {productForm.id ? "Edit Product" : "Add New Product"}
                             </h2>
                             <p style={{ color: "#64748b", marginBottom: "24px", fontSize: "14px" }}>
-                                Add details about your product for buyers to see
+                                {productForm.id ? "Update your product details" : "Add details about your product for buyers to see"}
                             </p>
 
                             <form onSubmit={handleAddProduct}>
-                                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                                    <div>
-                                        <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px" }}>Product Name *</label>
-                                        <input
-                                            type="text"
-                                            value={productForm.name}
-                                            onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                                            placeholder="e.g., Premium Cotton Fabric"
-                                            required
-                                            style={{ width: "100%", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxSizing: "border-box" }}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px" }}>Category *</label>
-                                        <input
-                                            type="text"
-                                            value={productForm.category}
-                                            onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                                            placeholder="e.g., Textiles & Fabrics"
-                                            required
-                                            style={{ width: "100%", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxSizing: "border-box" }}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px" }}>Description</label>
-                                        <textarea
-                                            value={productForm.description}
-                                            onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                                            placeholder="Describe your product features, quality, and specifications..."
-                                            rows={3}
-                                            style={{ width: "100%", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxSizing: "border-box", resize: "vertical" }}
-                                        />
-                                    </div>
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "24px" }}>
+                                    {/* Left Column */}
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                                         <div>
-                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px" }}>Price Range *</label>
+                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px", color: "#0f172a" }}>Product Name *</label>
                                             <input
                                                 type="text"
-                                                value={productForm.priceRange}
-                                                onChange={(e) => setProductForm({ ...productForm, priceRange: e.target.value })}
-                                                placeholder="e.g., ₹50-100/meter"
+                                                value={productForm.name}
+                                                onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                                                placeholder="e.g., Paper Cup, Corrugated Box"
                                                 required
-                                                style={{ width: "100%", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxSizing: "border-box" }}
+                                                style={{ width: "100%", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxSizing: "border-box", color: "#0f172a", backgroundColor: "white", fontSize: "14px" }}
                                             />
                                         </div>
+
                                         <div>
-                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px" }}>MOQ *</label>
+                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px", color: "#0f172a" }}>Category *</label>
+                                            <select
+                                                value={productForm.category}
+                                                onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                                                required
+                                                style={{ width: "100%", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxSizing: "border-box", color: "#0f172a", backgroundColor: "white", fontSize: "14px" }}
+                                            >
+                                                <option value="">Select Category</option>
+                                                {categoryOptions.map(cat => (
+                                                    <option key={cat} value={cat}>{cat}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px", color: "#0f172a" }}>Local/Common Name (Optional)</label>
                                             <input
                                                 type="text"
-                                                value={productForm.moq}
-                                                onChange={(e) => setProductForm({ ...productForm, moq: e.target.value })}
-                                                placeholder="e.g., 500 meters"
-                                                required
-                                                style={{ width: "100%", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxSizing: "border-box" }}
+                                                value={productForm.localName}
+                                                onChange={(e) => setProductForm({ ...productForm, localName: e.target.value })}
+                                                placeholder='e.g., "dhafti ka dibba", "gatta box"'
+                                                style={{ width: "100%", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxSizing: "border-box", color: "#0f172a", backgroundColor: "white", fontSize: "14px" }}
                                             />
                                         </div>
-                                    </div>
-                                    <div>
-                                        <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px" }}>Lead Time</label>
-                                        <input
-                                            type="text"
-                                            value={productForm.leadTime}
-                                            onChange={(e) => setProductForm({ ...productForm, leadTime: e.target.value })}
-                                            placeholder="e.g., 15-20 days"
-                                            style={{ width: "100%", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxSizing: "border-box" }}
-                                        />
-                                    </div>
 
-                                    {/* Product Images Upload */}
-                                    <div>
-                                        <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px" }}>Product Images</label>
-                                        <div style={{
-                                            border: "2px dashed #e2e8f0",
-                                            borderRadius: "12px",
-                                            padding: "20px",
-                                            textAlign: "center",
-                                            backgroundColor: "#f8fafc"
-                                        }}>
-                                            <div style={{ marginBottom: "12px" }}>
-                                                <span style={{ fontSize: "32px" }}>📷</span>
-                                            </div>
-                                            <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "12px" }}>
-                                                Upload product images (JPG, PNG)
-                                            </p>
-                                            <label style={{
-                                                display: "inline-block",
-                                                padding: "10px 20px",
-                                                backgroundColor: "#0f172a",
-                                                color: "white",
-                                                borderRadius: "8px",
-                                                fontSize: "13px",
-                                                fontWeight: "500",
-                                                cursor: "pointer"
-                                            }}>
-                                                Choose Images
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    multiple
-                                                    onChange={handleProductImageChange}
-                                                    style={{ display: "none" }}
-                                                />
-                                            </label>
-                                        </div>
-
-                                        {/* Image Previews */}
-                                        {productImagePreviews.length > 0 && (
-                                            <div style={{
-                                                display: "grid",
-                                                gridTemplateColumns: "repeat(4, 1fr)",
-                                                gap: "12px",
-                                                marginTop: "16px"
-                                            }}>
-                                                {productImagePreviews.map((preview, index) => (
-                                                    <div key={index} style={{ position: "relative" }}>
-                                                        <img
-                                                            src={preview}
-                                                            alt={`Preview ${index + 1}`}
-                                                            style={{
-                                                                width: "100%",
-                                                                height: "80px",
-                                                                objectFit: "cover",
-                                                                borderRadius: "8px",
-                                                                border: "1px solid #e2e8f0"
+                                        {/* Material Checkboxes */}
+                                        <div>
+                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "8px", color: "#0f172a" }}>Material</label>
+                                            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                                                {materialOptions.map(mat => (
+                                                    <label key={mat} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "#475569", cursor: "pointer" }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={productForm.materials?.includes(mat)}
+                                                            onChange={(e) => {
+                                                                const mats = productForm.materials || [];
+                                                                setProductForm({
+                                                                    ...productForm,
+                                                                    materials: e.target.checked ? [...mats, mat] : mats.filter(m => m !== mat)
+                                                                });
                                                             }}
                                                         />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeProductImage(index)}
-                                                            style={{
-                                                                position: "absolute",
-                                                                top: "-8px",
-                                                                right: "-8px",
-                                                                width: "24px",
-                                                                height: "24px",
-                                                                borderRadius: "50%",
-                                                                backgroundColor: "#ef4444",
-                                                                color: "white",
-                                                                border: "none",
-                                                                fontSize: "14px",
-                                                                cursor: "pointer",
-                                                                display: "flex",
-                                                                alignItems: "center",
-                                                                justifyContent: "center"
-                                                            }}
-                                                        >
-                                                            ×
-                                                        </button>
-                                                    </div>
+                                                        {mat}
+                                                    </label>
                                                 ))}
                                             </div>
-                                        )}
+                                        </div>
+
+                                        {/* Usage Checkboxes */}
+                                        <div>
+                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "8px", color: "#0f172a" }}>Usage</label>
+                                            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                                                {usageOptions.map(use => (
+                                                    <label key={use} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "#475569", cursor: "pointer" }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={productForm.usage?.includes(use)}
+                                                            onChange={(e) => {
+                                                                const uses = productForm.usage || [];
+                                                                setProductForm({
+                                                                    ...productForm,
+                                                                    usage: e.target.checked ? [...uses, use] : uses.filter(u => u !== use)
+                                                                });
+                                                            }}
+                                                        />
+                                                        {use}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Strength Checkboxes */}
+                                        <div>
+                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "8px", color: "#0f172a" }}>Strength</label>
+                                            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                                                {strengthOptions.map(str => (
+                                                    <label key={str} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "#475569", cursor: "pointer" }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={productForm.strength?.includes(str)}
+                                                            onChange={(e) => {
+                                                                const strs = productForm.strength || [];
+                                                                setProductForm({
+                                                                    ...productForm,
+                                                                    strength: e.target.checked ? [...strs, str] : strs.filter(s => s !== str)
+                                                                });
+                                                            }}
+                                                        />
+                                                        {str}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
+
+                                    {/* Right Column */}
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                                        {/* Price Range */}
+                                        <div>
+                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px", color: "#0f172a" }}>Price Range *</label>
+                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
+                                                <input
+                                                    type="number"
+                                                    value={productForm.minPrice}
+                                                    onChange={(e) => setProductForm({ ...productForm, minPrice: e.target.value })}
+                                                    placeholder="Min ₹"
+                                                    required
+                                                    style={{ width: "100%", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxSizing: "border-box", color: "#0f172a", backgroundColor: "white", fontSize: "14px" }}
+                                                />
+                                                <input
+                                                    type="number"
+                                                    value={productForm.maxPrice}
+                                                    onChange={(e) => setProductForm({ ...productForm, maxPrice: e.target.value })}
+                                                    placeholder="Max ₹"
+                                                    required
+                                                    style={{ width: "100%", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxSizing: "border-box", color: "#0f172a", backgroundColor: "white", fontSize: "14px" }}
+                                                />
+                                                <select
+                                                    value={productForm.priceUnit}
+                                                    onChange={(e) => setProductForm({ ...productForm, priceUnit: e.target.value })}
+                                                    style={{ width: "100%", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxSizing: "border-box", color: "#0f172a", backgroundColor: "white", fontSize: "14px" }}
+                                                >
+                                                    {priceUnitOptions.map(unit => (
+                                                        <option key={unit} value={unit}>per {unit}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {/* MOQ */}
+                                        <div>
+                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px", color: "#0f172a" }}>Minimum Order Quantity (MOQ) *</label>
+                                            <input
+                                                type="number"
+                                                value={productForm.moq}
+                                                onChange={(e) => setProductForm({ ...productForm, moq: e.target.value })}
+                                                placeholder="e.g., 500"
+                                                required
+                                                style={{ width: "100%", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxSizing: "border-box", color: "#0f172a", backgroundColor: "white", fontSize: "14px" }}
+                                            />
+                                            <p style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>Unit auto-linked from price unit: {productForm.priceUnit}</p>
+                                        </div>
+
+                                        {/* Lead Time */}
+                                        <div>
+                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px", color: "#0f172a" }}>Lead Time</label>
+                                            <select
+                                                value={productForm.leadTime}
+                                                onChange={(e) => setProductForm({ ...productForm, leadTime: e.target.value })}
+                                                style={{ width: "100%", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxSizing: "border-box", color: "#0f172a", backgroundColor: "white", fontSize: "14px" }}
+                                            >
+                                                {leadTimeOptions.map(time => (
+                                                    <option key={time} value={time}>{time}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {/* Description */}
+                                        <div>
+                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px", color: "#0f172a" }}>Description</label>
+                                            <textarea
+                                                value={productForm.description}
+                                                onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                                                placeholder="Describe your product features, quality, and specifications..."
+                                                rows={3}
+                                                style={{ width: "100%", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", boxSizing: "border-box", resize: "vertical", color: "#0f172a", backgroundColor: "white", fontSize: "14px" }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Product Images Upload */}
+                                <div>
+                                    <label style={{ display: "block", fontSize: "14px", fontWeight: "500", marginBottom: "6px" }}>Product Images</label>
+                                    <div style={{
+                                        border: "2px dashed #e2e8f0",
+                                        borderRadius: "12px",
+                                        padding: "20px",
+                                        textAlign: "center",
+                                        backgroundColor: "#f8fafc"
+                                    }}>
+                                        <div style={{ marginBottom: "12px" }}>
+                                            <span style={{ fontSize: "32px" }}>📷</span>
+                                        </div>
+                                        <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "12px" }}>
+                                            Upload product images (JPG, PNG)
+                                        </p>
+                                        <label style={{
+                                            display: "inline-block",
+                                            padding: "10px 20px",
+                                            backgroundColor: "#0f172a",
+                                            color: "white",
+                                            borderRadius: "8px",
+                                            fontSize: "13px",
+                                            fontWeight: "500",
+                                            cursor: "pointer"
+                                        }}>
+                                            Choose Images
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                onChange={handleProductImageChange}
+                                                style={{ display: "none" }}
+                                            />
+                                        </label>
+                                    </div>
+
+                                    {/* Image Previews */}
+                                    {productImagePreviews.length > 0 && (
+                                        <div style={{
+                                            display: "grid",
+                                            gridTemplateColumns: "repeat(4, 1fr)",
+                                            gap: "12px",
+                                            marginTop: "16px"
+                                        }}>
+                                            {productImagePreviews.map((preview, index) => (
+                                                <div key={index} style={{ position: "relative" }}>
+                                                    <img
+                                                        src={preview}
+                                                        alt={`Preview ${index + 1}`}
+                                                        style={{
+                                                            width: "100%",
+                                                            height: "80px",
+                                                            objectFit: "cover",
+                                                            borderRadius: "8px",
+                                                            border: "1px solid #e2e8f0"
+                                                        }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeProductImage(index)}
+                                                        style={{
+                                                            position: "absolute",
+                                                            top: "-8px",
+                                                            right: "-8px",
+                                                            width: "24px",
+                                                            height: "24px",
+                                                            borderRadius: "50%",
+                                                            backgroundColor: "#ef4444",
+                                                            color: "white",
+                                                            border: "none",
+                                                            fontSize: "14px",
+                                                            cursor: "pointer",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center"
+                                                        }}
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div style={{ display: "flex", gap: "12px", marginTop: "24px" }}>
@@ -1647,11 +1873,17 @@ export default function SupplierDashboard() {
                                             setShowAddProductModal(false);
                                             setProductForm({
                                                 name: "",
+                                                localName: "",
                                                 category: "",
                                                 description: "",
-                                                priceRange: "",
+                                                minPrice: "",
+                                                maxPrice: "",
+                                                priceUnit: "piece",
                                                 moq: "",
-                                                leadTime: "",
+                                                leadTime: "7-10 days",
+                                                materials: [],
+                                                usage: [],
+                                                strength: [],
                                                 images: []
                                             });
                                             setProductImagePreviews([]);
@@ -1673,12 +1905,12 @@ export default function SupplierDashboard() {
                                             cursor: productSaving ? "not-allowed" : "pointer"
                                         }}
                                     >
-                                        {productSaving ? "Adding..." : "Add Product"}
+                                        {productSaving ? "Saving..." : (productForm.id ? "Update Product" : "Add Product")}
                                     </button>
                                 </div>
                             </form>
                         </div>
-                    </div>
+                    </div >
                 )
             }
         </div >

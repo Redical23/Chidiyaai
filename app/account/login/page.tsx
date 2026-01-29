@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useState, FormEvent } from "react"
 
 export default function LoginPage() {
@@ -65,12 +66,17 @@ export default function LoginPage() {
       }}>
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <Link href="/" style={{ textDecoration: "none" }}>
-            <span style={{ fontSize: "24px", fontWeight: "bold", color: "#0f172a" }}>
-              Chidiya<span style={{ color: "#3b82f6" }}>AI</span>
-            </span>
+          <Link href="/" style={{ textDecoration: "none", display: "inline-block" }}>
+            <Image
+              src="/assests/chidiyaailogo.png"
+              alt="ChidiyaAI"
+              width={180}
+              height={48}
+              style={{ height: "48px", width: "auto" }}
+              priority
+            />
           </Link>
-          <p style={{ color: "#64748b", marginTop: "8px", fontSize: "14px" }}>
+          <p style={{ color: "#64748b", marginTop: "12px", fontSize: "14px" }}>
             Sign in to your account
           </p>
         </div>
@@ -145,7 +151,9 @@ export default function LoginPage() {
                 borderRadius: "8px",
                 fontSize: "14px",
                 outline: "none",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
+                color: "#0f172a",
+                backgroundColor: "white"
               }}
             />
           </div>
@@ -167,7 +175,9 @@ export default function LoginPage() {
                 borderRadius: "8px",
                 fontSize: "14px",
                 outline: "none",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
+                color: "#0f172a",
+                backgroundColor: "white"
               }}
             />
           </div>
@@ -197,6 +207,20 @@ export default function LoginPage() {
             Sign up
           </Link>
         </p>
+
+        <Link
+          href="/"
+          style={{
+            display: "block",
+            textAlign: "center",
+            marginTop: "16px",
+            fontSize: "14px",
+            color: "#64748b",
+            textDecoration: "none"
+          }}
+        >
+          ← Back to Home
+        </Link>
       </div>
     </div>
   )

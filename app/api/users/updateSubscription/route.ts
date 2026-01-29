@@ -3,12 +3,50 @@ import { prisma } from "@/lib/prisma";
 
 export async function PATCH(request: Request) {
     try {
-        const { email, subscribe, subscriptionExpiry, orderId } = await request.json();
+        const { email, subscribe, subscriptionExpiry, orderId, plan } = await request.json();
 
         if (!email) {
             return NextResponse.json({ error: "Email is required" }, { status: 400 });
         }
 
+        const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+
+        // Handle Buyer Pro subscription (₹499/mo)
+        if (plan === "buyer_pro") {
+            const existingBuyer = await prisma.buyer.findUnique({
+                where: { email },
+            });
+
+            if (existingBuyer) {
+                // Calculate new expiry date
+                let newExpiry: Date;
+
+                // Using type assertion since fields were just added to schema
+                const buyerAny = existingBuyer as { subscriptionExpiry?: Date } | null;
+
+                // If they have an active subscription, ADD 30 days to it
+                if (buyerAny?.subscriptionExpiry && buyerAny.subscriptionExpiry > new Date()) {
+                    newExpiry = new Date(buyerAny.subscriptionExpiry.getTime() + thirtyDays);
+                } else {
+                    // Expired or no subscription - start fresh from today
+                    newExpiry = new Date(Date.now() + thirtyDays);
+                }
+
+                // Update existing Buyer using raw query for new fields
+                const updatedBuyer = await prisma.$executeRaw`
+                    UPDATE buyers 
+                    SET "isSubscribed" = ${subscribe}, 
+                        "subscriptionExpiry" = ${newExpiry}, 
+                        "razorpayOrderId" = ${orderId}
+                    WHERE email = ${email}
+                `;
+                return NextResponse.json({ success: true, message: "Buyer subscription updated", rowsAffected: updatedBuyer });
+            }
+
+            return NextResponse.json({ error: "Buyer not found" }, { status: 404 });
+        }
+
+        // Handle Supplier subscription (₹2,999/mo) - existing logic
         // 1. Check if Supplier exists
         const existingSupplier = await prisma.supplier.findUnique({
             where: { email },
@@ -17,7 +55,6 @@ export async function PATCH(request: Request) {
         if (existingSupplier) {
             // Calculate new expiry date
             let newExpiry: Date;
-            const thirtyDays = 30 * 24 * 60 * 60 * 1000;
 
             // If they have an active subscription, ADD 30 days to it
             if (existingSupplier.subscriptionExpiry && existingSupplier.subscriptionExpiry > new Date()) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 const ratingData = [
@@ -16,42 +16,52 @@ export function RatingInteraction({ onChange = null, className = "", onSubmit = 
     const [hoverRating, setHoverRating] = useState(0);
     const [submitted, setSubmitted] = useState(false);
     const [feedback, setFeedback] = useState("");
+    const [mounted, setMounted] = useState(false);
+
+    // Check if already submitted on mount - using useEffect to avoid hydration issues
+    useEffect(() => {
+        setMounted(true);
+        const savedRating = localStorage.getItem("chidiya_rating");
+        const wasSubmitted = localStorage.getItem("chidiya_rating_submitted");
+        if (savedRating) setRating(parseInt(savedRating));
+        if (wasSubmitted === "true") setSubmitted(true);
+    }, []);
 
     const handleClick = (value) => {
         setRating(value);
         onChange?.(value);
-
-        // Save to localStorage
-        if (typeof window !== "undefined") {
-            localStorage.setItem("chidiya_rating", value.toString());
-        }
+        localStorage.setItem("chidiya_rating", value.toString());
     };
 
     const handleSubmit = () => {
         if (rating > 0) {
             setSubmitted(true);
             onSubmit?.(rating, feedback);
-
-            // Save submission to localStorage
-            if (typeof window !== "undefined") {
-                localStorage.setItem("chidiya_rating_submitted", "true");
-                localStorage.setItem("chidiya_feedback", feedback);
-            }
+            localStorage.setItem("chidiya_rating_submitted", "true");
+            localStorage.setItem("chidiya_feedback", feedback);
         }
     };
 
-    // Check if already submitted on mount
-    useState(() => {
-        if (typeof window !== "undefined") {
-            const savedRating = localStorage.getItem("chidiya_rating");
-            const wasSubmitted = localStorage.getItem("chidiya_rating_submitted");
-            if (savedRating) setRating(parseInt(savedRating));
-            if (wasSubmitted === "true") setSubmitted(true);
-        }
-    });
-
     const displayRating = hoverRating || rating;
     const activeData = displayRating > 0 ? ratingData[displayRating - 1] : null;
+
+    // Don't render different content on server vs client
+    if (!mounted) {
+        return (
+            <div className={cn("flex flex-col items-center gap-6", className)}>
+                <div className="flex items-center gap-3">
+                    {ratingData.map((item, i) => (
+                        <div key={i} className="h-14 w-14 flex items-center justify-center">
+                            <span className="text-3xl grayscale opacity-40">{item.emoji}</span>
+                        </div>
+                    ))}
+                </div>
+                <div className="h-7 w-32 flex items-center justify-center">
+                    <span className="text-sm font-medium text-slate-400">Rate us</span>
+                </div>
+            </div>
+        );
+    }
 
     if (submitted) {
         return (

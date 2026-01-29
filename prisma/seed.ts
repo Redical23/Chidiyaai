@@ -1,160 +1,541 @@
-// Seed script to create initial data
-// Run with: npx ts-node prisma/seed.ts
-
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-    console.log("🌱 Starting database seed...\n");
+    console.log('🌱 Seeding database with 30 test suppliers...\n');
 
-    // Create initial admin
-    const adminPassword = await bcrypt.hash("admin123", 10);
-    const admin = await prisma.admin.upsert({
-        where: { email: "admin@chidiyaai.com" },
-        update: {},
-        create: {
-            email: "admin@chidiyaai.com",
-            password: adminPassword,
-            name: "Super Admin",
-            role: "super_admin"
-        }
-    });
+    const password = await bcrypt.hash("supplier123", 10);
 
-    // Create user requested super admin
-    const rishiPassword = await bcrypt.hash("Rishi420", 10);
-    const rishiAdmin = await prisma.admin.upsert({
-        where: { email: "rishigupta9gupta@gmail.com" },
-        update: {},
-        create: {
-            email: "rishigupta9gupta@gmail.com",
-            password: rishiPassword,
-            name: "Rishi Gupta",
-            role: "super_admin"
-        }
-    });
-    console.log("✅ Admin created:", admin.email);
-    console.log("✅ Admin created:", rishiAdmin.email);
-
-    // Create sample supplier
-    const supplierPassword = await bcrypt.hash("supplier123", 10);
-    const supplier = await prisma.supplier.upsert({
-        where: { email: "supplier@example.com" },
-        update: {},
-        create: {
-            email: "supplier@example.com",
-            password: supplierPassword,
-            companyName: "ABC Textiles Pvt Ltd",
-            phone: "+91 98765 43210",
-            gstNumber: "27AABCU9603R1ZM",
-            productCategories: ["Textiles", "Fabrics", "Cotton"],
+    // Lucknow Suppliers (10)
+    const lucknowSuppliers = [
+        {
+            companyName: "Lucknow Pack Studio",
+            email: "lkpackstudio@test.com",
+            password,
+            phone: "+91-9000000101",
+            gstNumber: "GST09AABCD1234E1Z5",
+            productCategories: ["Corrugated Boxes", "Shipping Bags"],
             capacity: "large",
-            moq: "500 units",
+            moq: "50 boxes",
+            city: "Lucknow",
+            state: "Uttar Pradesh",
+            address: "Hazratganj, Lucknow",
             status: "approved",
-            badges: ["gst", "verified"],
-            address: "Industrial Area Phase 2",
-            city: "Mumbai",
-            state: "Maharashtra",
-            pincode: "400001",
-            website: "https://abctextiles.com",
-            description: "Leading manufacturer of premium quality textiles and fabrics since 1995.",
-            categories: "Textiles, Fabrics, Cotton, Silk",
-            establishedYear: "1995",
-            employeeCount: "100-500",
-            certifications: "ISO 9001, GOTS Certified"
-        }
-    });
-    console.log("✅ Supplier created:", supplier.companyName);
+            badges: ["verified", "gst"],
+            description: "Designer corrugated boxes with window options for retail displays",
+        },
+        {
+            companyName: "LK Corrugate Pros",
+            email: "lkcorrugate@test.com",
+            password,
+            phone: "+91-9000000102",
+            gstNumber: "GST09AABCE5678F2Z3",
+            productCategories: ["Corrugated Boxes"],
+            capacity: "enterprise",
+            moq: "100 boxes",
+            city: "Lucknow",
+            state: "Uttar Pradesh",
+            address: "Chinhat Industrial Area, Lucknow",
+            status: "approved",
+            badges: ["verified"],
+            description: "Stackable crates and heavy-duty storage boxes",
+        },
+        {
+            companyName: "Lucknow Box Designers",
+            email: "lkboxdesigners@test.com",
+            password,
+            phone: "+91-9000000103",
+            gstNumber: "GST09AABCF9012G3Z1",
+            productCategories: ["Corrugated Boxes", "Shipping Bags"],
+            capacity: "medium",
+            moq: "100 boxes",
+            city: "Lucknow",
+            state: "Uttar Pradesh",
+            address: "Aliganj, Lucknow",
+            status: "approved",
+            badges: ["verified", "gst", "premium"],
+            description: "Printed gift boxes with gloss finish and branding",
+        },
+        {
+            companyName: "GreenWrap LK",
+            email: "greenwraplk@test.com",
+            password,
+            phone: "+91-9000000104",
+            gstNumber: "GST09AABCG3456H4Z2",
+            productCategories: ["Bubble Wrap", "Paper Cups"],
+            capacity: "medium",
+            moq: "100 rolls",
+            city: "Lucknow",
+            state: "Uttar Pradesh",
+            address: "Gomti Nagar, Lucknow",
+            status: "approved",
+            badges: ["verified", "gst"],
+            description: "Eco-friendly wrap solutions and compostable cups",
+        },
+        {
+            companyName: "LK Quick Supplies",
+            email: "lkquicksupply@test.com",
+            password,
+            phone: "+91-9000000105",
+            gstNumber: "GST09AABCH7890I5Z3",
+            productCategories: ["Corrugated Boxes", "BOPP Tapes"],
+            capacity: "small",
+            moq: "250 units",
+            city: "Lucknow",
+            state: "Uttar Pradesh",
+            address: "Vikas Nagar, Lucknow",
+            status: "approved",
+            badges: ["verified"],
+            description: "Quick dispatch assorted packaging materials",
+        },
+        {
+            companyName: "Lucknow Custom Prints",
+            email: "lkcustomprints@test.com",
+            password,
+            phone: "+91-9000000106",
+            gstNumber: "GST09AABCI1234J6Z4",
+            productCategories: ["Corrugated Boxes", "Shipping Bags"],
+            capacity: "large",
+            moq: "200 boxes",
+            city: "Lucknow",
+            state: "Uttar Pradesh",
+            address: "Amausi Industrial Area, Lucknow",
+            status: "approved",
+            badges: ["verified", "gst", "premium"],
+            description: "Full color custom print corrugated boxes",
+        },
+        {
+            companyName: "LK Food-Pack Solutions",
+            email: "lkfoodpack@test.com",
+            password,
+            phone: "+91-9000000107",
+            gstNumber: "GST09AABCJ5678K7Z5",
+            productCategories: ["Paper Cups", "Shipping Bags"],
+            capacity: "medium",
+            moq: "1000 cups",
+            city: "Lucknow",
+            state: "Uttar Pradesh",
+            address: "Alambagh, Lucknow",
+            status: "approved",
+            badges: ["verified", "gst"],
+            description: "Food-grade paper cups and greaseproof liners",
+        },
+        {
+            companyName: "Lucknow Industrial Pack",
+            email: "lkindustrialpack@test.com",
+            password,
+            phone: "+91-9000000108",
+            gstNumber: "GST09AABCK9012L8Z6",
+            productCategories: ["Corrugated Boxes"],
+            capacity: "enterprise",
+            moq: "10 boxes",
+            city: "Lucknow",
+            state: "Uttar Pradesh",
+            address: "Talkatora Industrial Area, Lucknow",
+            status: "approved",
+            badges: ["verified"],
+            description: "Heavy duty triple wall industrial boxes",
+        },
+        {
+            companyName: "LK BulkBox Traders",
+            email: "lkbulkbox@test.com",
+            password,
+            phone: "+91-9000000109",
+            gstNumber: "GST09AABCL3456M9Z7",
+            productCategories: ["Corrugated Boxes", "Shipping Bags"],
+            capacity: "enterprise",
+            moq: "1000 boxes",
+            city: "Lucknow",
+            state: "Uttar Pradesh",
+            address: "Transport Nagar, Lucknow",
+            status: "approved",
+            badges: ["verified", "gst"],
+            description: "Bulk economy boxes at wholesale prices",
+        },
+        {
+            companyName: "Lucknow Sleeve Makers",
+            email: "lksleeves@test.com",
+            password,
+            phone: "+91-9000000110",
+            gstNumber: "GST09AABCM7890N1Z8",
+            productCategories: ["Shipping Bags", "Corrugated Boxes"],
+            capacity: "small",
+            moq: "500 pcs",
+            city: "Lucknow",
+            state: "Uttar Pradesh",
+            address: "Indira Nagar, Lucknow",
+            status: "approved",
+            badges: ["verified"],
+            description: "Bottle sleeves and slim corrugated options",
+        },
+    ];
 
-    // Create sample products for supplier
-    const product1 = await prisma.product.upsert({
-        where: { id: "sample-product-1" },
-        update: {},
-        create: {
-            id: "sample-product-1",
-            supplierId: supplier.id,
-            name: "Premium Cotton Fabric",
-            category: "Textiles & Fabrics",
-            description: "High-quality 100% cotton fabric, breathable and durable.",
-            priceRange: "₹150-250/meter",
-            moq: "500 meters",
-            leadTime: "15-20 days",
-            images: []
-        }
-    });
+    // Noida Suppliers (10)
+    const noidaSuppliers = [
+        {
+            companyName: "Noida Box Lab",
+            email: "noidaboxlab@test.com",
+            password,
+            phone: "+91-9000000111",
+            gstNumber: "GST09NOIDAB1234A1Z1",
+            productCategories: ["Corrugated Boxes", "Shipping Bags"],
+            capacity: "large",
+            moq: "200 boxes",
+            city: "Noida",
+            state: "Uttar Pradesh",
+            address: "Sector 63, Noida",
+            status: "approved",
+            badges: ["verified", "gst", "premium"],
+            description: "E-commerce optimized shipping boxes",
+        },
+        {
+            companyName: "NDX Eco Supplies",
+            email: "ndxeco@test.com",
+            password,
+            phone: "+91-9000000112",
+            gstNumber: "GST09NOIDAC5678B2Z2",
+            productCategories: ["Bubble Wrap", "Paper Cups"],
+            capacity: "medium",
+            moq: "10 rolls",
+            city: "Noida",
+            state: "Uttar Pradesh",
+            address: "Sector 18, Noida",
+            status: "approved",
+            badges: ["verified"],
+            description: "Recycled bubble wrap and eco-friendly cups",
+        },
+        {
+            companyName: "Noida Custom Packs",
+            email: "noidacustom@test.com",
+            password,
+            phone: "+91-9000000113",
+            gstNumber: "GST09NOIDAAE9012C3Z3",
+            productCategories: ["Corrugated Boxes", "Shipping Bags"],
+            capacity: "large",
+            moq: "100 boxes",
+            city: "Greater Noida",
+            state: "Uttar Pradesh",
+            address: "Alpha 2, Greater Noida",
+            status: "approved",
+            badges: ["verified", "gst", "premium"],
+            description: "Window gift cartons with custom print",
+        },
+        {
+            companyName: "Noida QuickPrints",
+            email: "noidaquickprints@test.com",
+            password,
+            phone: "+91-9000000114",
+            gstNumber: "GST09NOIDAB3456D4Z4",
+            productCategories: ["Shipping Bags", "Corrugated Boxes"],
+            capacity: "medium",
+            moq: "500 pcs",
+            city: "Noida",
+            state: "Uttar Pradesh",
+            address: "Sector 62, Noida",
+            status: "approved",
+            badges: ["verified", "gst"],
+            description: "Fast print labels and promo boxes",
+        },
+        {
+            companyName: "NDX Cup Solutions",
+            email: "ndxcups@test.com",
+            password,
+            phone: "+91-9000000115",
+            gstNumber: "GST09NOIDAC7890E5Z5",
+            productCategories: ["Paper Cups"],
+            capacity: "large",
+            moq: "500 cups",
+            city: "Noida",
+            state: "Uttar Pradesh",
+            address: "Sector 10, Noida",
+            status: "approved",
+            badges: ["verified"],
+            description: "Double-wall hot cups and cold drink cups",
+        },
+        {
+            companyName: "Noida Industrial Sheets",
+            email: "noidaindsheets@test.com",
+            password,
+            phone: "+91-9000000116",
+            gstNumber: "GST09NOIDAB1234F6Z6",
+            productCategories: ["Corrugated Boxes", "Bubble Wrap"],
+            capacity: "enterprise",
+            moq: "10 sheets",
+            city: "Noida",
+            state: "Uttar Pradesh",
+            address: "Sector 80, Noida",
+            status: "approved",
+            badges: ["verified", "gst"],
+            description: "Heavy-duty corrugated sheets and bakery trays",
+        },
+        {
+            companyName: "Noida Bag Makers",
+            email: "noidabags@test.com",
+            password,
+            phone: "+91-9000000117",
+            gstNumber: "GST09NOIDAC5678G7Z7",
+            productCategories: ["Shipping Bags"],
+            capacity: "medium",
+            moq: "500 bags",
+            city: "Noida",
+            state: "Uttar Pradesh",
+            address: "Sector 59, Noida",
+            status: "approved",
+            badges: ["verified"],
+            description: "Grocery kraft bags and non-woven totes",
+        },
+        {
+            companyName: "NDX FoamTech",
+            email: "ndxfoam@test.com",
+            password,
+            phone: "+91-9000000118",
+            gstNumber: "GST09NOIDAB9012H8Z8",
+            productCategories: ["Bubble Wrap", "Shipping Bags"],
+            capacity: "large",
+            moq: "10 rolls",
+            city: "Noida",
+            state: "Uttar Pradesh",
+            address: "Sector 135, Noida",
+            status: "approved",
+            badges: ["verified", "gst", "premium"],
+            description: "High-density foam rolls and custom inserts",
+        },
+        {
+            companyName: "Noida Wrap Studio",
+            email: "noidawrap@test.com",
+            password,
+            phone: "+91-9000000119",
+            gstNumber: "GST09NOIDAC3456I9Z9",
+            productCategories: ["Bubble Wrap", "Corrugated Boxes"],
+            capacity: "small",
+            moq: "5 rolls",
+            city: "Noida",
+            state: "Uttar Pradesh",
+            address: "Sector 44, Noida",
+            status: "approved",
+            badges: ["verified"],
+            description: "Cling film and sleeve boxes for bottles",
+        },
+        {
+            companyName: "Noida Labelworks",
+            email: "noidalabels@test.com",
+            password,
+            phone: "+91-9000000120",
+            gstNumber: "GST09NOIDAB7890J1Z1",
+            productCategories: ["BOPP Tapes", "Shipping Bags"],
+            capacity: "medium",
+            moq: "1000 labels",
+            city: "Greater Noida",
+            state: "Uttar Pradesh",
+            address: "Pari Chowk, Greater Noida",
+            status: "approved",
+            badges: ["verified", "gst"],
+            description: "Barcode and tamper-evident security labels",
+        },
+    ];
 
-    const product2 = await prisma.product.upsert({
-        where: { id: "sample-product-2" },
-        update: {},
-        create: {
-            id: "sample-product-2",
-            supplierId: supplier.id,
-            name: "Silk Blend Fabric",
-            category: "Textiles & Fabrics",
-            description: "Luxurious silk blend fabric perfect for premium garments.",
-            priceRange: "₹400-600/meter",
-            moq: "200 meters",
-            leadTime: "20-25 days",
-            images: []
-        }
-    });
-    console.log("✅ Products created: 2 products");
+    // Gurugram Suppliers (10)
+    const gurugramSuppliers = [
+        {
+            companyName: "Gurgaon Pack Lab",
+            email: "ggpacklab@test.com",
+            password,
+            phone: "+91-9000000121",
+            gstNumber: "GST06GGNAB1234A1Z1",
+            productCategories: ["Corrugated Boxes", "Shipping Bags"],
+            capacity: "large",
+            moq: "80 boxes",
+            city: "Gurugram",
+            state: "Haryana",
+            address: "Udyog Vihar Phase 4, Gurugram",
+            status: "approved",
+            badges: ["verified", "gst", "premium"],
+            description: "Fashion retail display boxes with prints",
+        },
+        {
+            companyName: "GGN Rapid Boxes",
+            email: "ggnrapid@test.com",
+            password,
+            phone: "+91-9000000122",
+            gstNumber: "GST06GGNAC5678B2Z2",
+            productCategories: ["Corrugated Boxes", "BOPP Tapes"],
+            capacity: "medium",
+            moq: "100 boxes",
+            city: "Gurugram",
+            state: "Haryana",
+            address: "Sector 37, Gurugram",
+            status: "approved",
+            badges: ["verified"],
+            description: "Same-day express box manufacturing",
+        },
+        {
+            companyName: "Gurgaon EcoPackers",
+            email: "ggnecopack@test.com",
+            password,
+            phone: "+91-9000000123",
+            gstNumber: "GST06GGNAB9012C3Z3",
+            productCategories: ["Bubble Wrap", "Paper Cups"],
+            capacity: "medium",
+            moq: "200 pcs",
+            city: "Gurugram",
+            state: "Haryana",
+            address: "Sector 18, Gurugram",
+            status: "approved",
+            badges: ["verified", "gst"],
+            description: "Plant-fiber wraps and compostable cups",
+        },
+        {
+            companyName: "GGN Print House",
+            email: "ggnprinthouse@test.com",
+            password,
+            phone: "+91-9000000124",
+            gstNumber: "GST06GGNAC3456D4Z4",
+            productCategories: ["Corrugated Boxes", "Shipping Bags"],
+            capacity: "large",
+            moq: "60 boxes",
+            city: "Gurugram",
+            state: "Haryana",
+            address: "DLF Phase 3, Gurugram",
+            status: "approved",
+            badges: ["verified", "gst", "premium"],
+            description: "Large format and luxury printed boxes",
+        },
+        {
+            companyName: "Gurgaon CupWorks",
+            email: "ggncupworks@test.com",
+            password,
+            phone: "+91-9000000125",
+            gstNumber: "GST06GGNAB7890E5Z5",
+            productCategories: ["Paper Cups"],
+            capacity: "large",
+            moq: "600 cups",
+            city: "Gurugram",
+            state: "Haryana",
+            address: "Sector 44, Gurugram",
+            status: "approved",
+            badges: ["verified"],
+            description: "Cold drink and hot beverage cups",
+        },
+        {
+            companyName: "GGN HeavyPack",
+            email: "ggnheavypack@test.com",
+            password,
+            phone: "+91-9000000126",
+            gstNumber: "GST06GGNAC1234F6Z6",
+            productCategories: ["Corrugated Boxes", "Shipping Bags"],
+            capacity: "enterprise",
+            moq: "5 boxes",
+            city: "Gurugram",
+            state: "Haryana",
+            address: "IMT Manesar, Gurugram",
+            status: "approved",
+            badges: ["verified", "gst"],
+            description: "Heavy-duty pallet boxes and metal straps",
+        },
+        {
+            companyName: "Gurgaon Tape & Label",
+            email: "ggntapelabel@test.com",
+            password,
+            phone: "+91-9000000127",
+            gstNumber: "GST06GGNAB5678G7Z7",
+            productCategories: ["BOPP Tapes", "Shipping Bags"],
+            capacity: "medium",
+            moq: "500 rolls",
+            city: "Gurugram",
+            state: "Haryana",
+            address: "Sector 29, Gurugram",
+            status: "approved",
+            badges: ["verified"],
+            description: "Waterproof labels and bulk brown tape",
+        },
+        {
+            companyName: "GGN QuickWrap",
+            email: "ggnquickwrap@test.com",
+            password,
+            phone: "+91-9000000128",
+            gstNumber: "GST06GGNAC9012H8Z8",
+            productCategories: ["Bubble Wrap", "Shipping Bags"],
+            capacity: "medium",
+            moq: "10 rolls",
+            city: "Gurugram",
+            state: "Haryana",
+            address: "Sector 14, Gurugram",
+            status: "approved",
+            badges: ["verified", "gst"],
+            description: "Stretch film and cling film rolls",
+        },
+        {
+            companyName: "Gurgaon Mail Solutions",
+            email: "ggnmailsol@test.com",
+            password,
+            phone: "+91-9000000129",
+            gstNumber: "GST06GGNAB3456I9Z9",
+            productCategories: ["Shipping Bags", "Paper Cups"],
+            capacity: "small",
+            moq: "500 mailers",
+            city: "Gurugram",
+            state: "Haryana",
+            address: "Sohna Road, Gurugram",
+            status: "approved",
+            badges: ["verified"],
+            description: "Padded mailers and event cups",
+        },
+        {
+            companyName: "GGN Specialty Boxes",
+            email: "ggnspecialty@test.com",
+            password,
+            phone: "+91-9000000130",
+            gstNumber: "GST06GGNAC7890J1Z1",
+            productCategories: ["Corrugated Boxes"],
+            capacity: "large",
+            moq: "25 boxes",
+            city: "Gurugram",
+            state: "Haryana",
+            address: "Golf Course Road, Gurugram",
+            status: "approved",
+            badges: ["verified", "gst", "premium"],
+            description: "Rigid gift boxes with velvet and magnet lock",
+        },
+    ];
 
-    // Create sample buyer
-    const buyerPassword = await bcrypt.hash("buyer123", 10);
-    const buyer = await prisma.buyer.upsert({
-        where: { email: "buyer@example.com" },
-        update: {},
-        create: {
-            email: "buyer@example.com",
-            password: buyerPassword,
-            name: "Rajesh Kumar",
-            phone: "+91 87654 32100",
-            companyName: "Fashion Hub Retail",
-            status: "active"
-        }
-    });
-    console.log("✅ Buyer created:", buyer.name);
+    const allSuppliers = [...lucknowSuppliers, ...noidaSuppliers, ...gurugramSuppliers];
 
-    // Create sample category
-    const category = await prisma.category.upsert({
-        where: { slug: "textiles" },
-        update: {},
-        create: {
-            name: "Textiles & Fabrics",
-            slug: "textiles",
-            description: "All types of textiles, fabrics, and raw materials"
-        }
-    });
-    console.log("✅ Category created:", category.name);
+    console.log('📍 Lucknow: 10 suppliers');
+    console.log('📍 Noida/Greater Noida: 10 suppliers');
+    console.log('📍 Gurugram: 10 suppliers\n');
 
-    // Create sample inquiry
-    const inquiry = await prisma.inquiry.create({
-        data: {
-            buyerId: buyer.id,
-            supplierId: supplier.id,
-            categoryId: category.id,
-            product: "Cotton Fabric",
-            description: "Looking for high-quality cotton fabric for summer collection",
-            quantity: "5000 meters",
-            budget: "₹5,00,000",
-            timeline: "30 days",
-            status: "new"
-        }
-    });
-    console.log("✅ Inquiry created:", inquiry.product);
+    let created = 0;
+    let updated = 0;
 
-    console.log("\n🎉 Database seeded successfully!");
-    console.log("\n📋 Login Credentials:");
-    console.log("   Admin: admin@chidiyaai.com / admin123");
-    console.log("   Supplier: supplier@example.com / supplier123");
-    console.log("   Buyer: buyer@example.com / buyer123");
+    for (const supplier of allSuppliers) {
+        try {
+            const result = await prisma.supplier.upsert({
+                where: { email: supplier.email },
+                update: supplier,
+                create: supplier,
+            });
+            if (result) {
+                console.log(`✓ ${supplier.companyName} (${supplier.city})`);
+                created++;
+            }
+        } catch (error) {
+            console.log(`✗ Error: ${supplier.companyName}`, error);
+        }
+    }
+
+    console.log(`\n✅ Database seeding completed!`);
+    console.log(`📦 Total: ${created} suppliers added/updated`);
+    console.log(`📍 Cities: Lucknow, Noida, Greater Noida, Gurugram`);
+    console.log(`📋 Categories: Corrugated Boxes, Bubble Wrap, Paper Cups, BOPP Tapes, Shipping Bags`);
 }
 
 main()
     .catch((e) => {
-        console.error("❌ Seed failed:", e);
+        console.error(e);
         process.exit(1);
     })
-    .finally(() => prisma.$disconnect());
+    .finally(async () => {
+        await prisma.$disconnect();
+    });

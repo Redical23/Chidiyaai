@@ -1,7 +1,9 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import UserAuthButton from '@/app/components/UserAuthButton';
 
 export default function Navbar({ menus }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -43,8 +45,15 @@ export default function Navbar({ menus }) {
                 justifyContent: "space-between"
             }}>
                 {/* Logo */}
-                <Link href="/" style={{ fontWeight: "bold", fontSize: "20px", color: "#0f172a", textDecoration: "none" }}>
-                    Chidiya<span style={{ color: "#3b82f6" }}>AI</span>
+                <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+                    <Image
+                        src="/assests/chidiyaailogo.png"
+                        alt="ChidiyaAI"
+                        width={100}
+                        height={40}
+                        style={{ height: "40px", width: "auto" }}
+                        priority
+                    />
                 </Link>
 
                 {/* Desktop Navigation */}
@@ -77,35 +86,7 @@ export default function Navbar({ menus }) {
                     alignItems: "center",
                     gap: "12px"
                 }}>
-                    <Link
-                        href="/account"
-                        style={{
-                            padding: "8px 16px",
-                            fontSize: "14px",
-                            fontWeight: "500",
-                            color: "#3b82f6",
-                            backgroundColor: "#eff6ff",
-                            border: "1px solid #bfdbfe",
-                            borderRadius: "8px",
-                            textDecoration: "none"
-                        }}
-                    >
-                        Sign in
-                    </Link>
-                    <Link
-                        href="/onboarding"
-                        style={{
-                            padding: "10px 20px",
-                            fontSize: "14px",
-                            fontWeight: "500",
-                            backgroundColor: "#0f172a",
-                            color: "white",
-                            borderRadius: "8px",
-                            textDecoration: "none"
-                        }}
-                    >
-                        Try for free
-                    </Link>
+                    <UserAuthButton />
                 </div>
 
                 {/* Mobile: Sign in + Hamburger */}
@@ -114,21 +95,7 @@ export default function Navbar({ menus }) {
                     alignItems: "center",
                     gap: "8px"
                 }}>
-                    <Link
-                        href="modules\account\components\login"
-                        style={{
-                            padding: "6px 12px",
-                            fontSize: "13px",
-                            fontWeight: "500",
-                            color: "#3b82f6",
-                            backgroundColor: "#eff6ff",
-                            border: "1px solid #bfdbfe",
-                            borderRadius: "6px",
-                            textDecoration: "none"
-                        }}
-                    >
-                        Sign in
-                    </Link>
+                    <UserAuthButton />
                     <button
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         style={{
@@ -178,25 +145,6 @@ export default function Navbar({ menus }) {
                             {item.title}
                         </Link>
                     ))}
-                    <div style={{ borderTop: "1px solid #e2e8f0", marginTop: "12px", paddingTop: "12px" }}>
-                        <Link
-                            href="/onboarding"
-                            onClick={() => setMobileMenuOpen(false)}
-                            style={{
-                                display: "block",
-                                padding: "12px 16px",
-                                fontSize: "16px",
-                                fontWeight: "500",
-                                backgroundColor: "#0f172a",
-                                color: "white",
-                                borderRadius: "8px",
-                                textDecoration: "none",
-                                textAlign: "center"
-                            }}
-                        >
-                            Try for free
-                        </Link>
-                    </div>
                 </div>
             )}
         </header>

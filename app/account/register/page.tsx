@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useState, FormEvent } from "react"
 
 export default function RegisterPage() {
@@ -72,12 +73,17 @@ export default function RegisterPage() {
             }}>
                 {/* Logo */}
                 <div style={{ textAlign: "center", marginBottom: "32px" }}>
-                    <Link href="/" style={{ textDecoration: "none" }}>
-                        <span style={{ fontSize: "24px", fontWeight: "bold", color: "#0f172a" }}>
-                            Chidiya<span style={{ color: "#3b82f6" }}>AI</span>
-                        </span>
+                    <Link href="/" style={{ textDecoration: "none", display: "inline-block" }}>
+                        <Image
+                            src="/assests/chidiyaailogo.png"
+                            alt="ChidiyaAI"
+                            width={180}
+                            height={48}
+                            style={{ height: "48px", width: "auto" }}
+                            priority
+                        />
                     </Link>
-                    <p style={{ color: "#64748b", marginTop: "8px", fontSize: "14px" }}>
+                    <p style={{ color: "#64748b", marginTop: "12px", fontSize: "14px" }}>
                         Create your free account
                     </p>
                 </div>
@@ -153,7 +159,9 @@ export default function RegisterPage() {
                                     borderRadius: "8px",
                                     fontSize: "14px",
                                     outline: "none",
-                                    boxSizing: "border-box"
+                                    boxSizing: "border-box",
+                                    color: "#0f172a",
+                                    backgroundColor: "white"
                                 }}
                             />
                         </div>
@@ -174,7 +182,9 @@ export default function RegisterPage() {
                                     borderRadius: "8px",
                                     fontSize: "14px",
                                     outline: "none",
-                                    boxSizing: "border-box"
+                                    boxSizing: "border-box",
+                                    color: "#0f172a",
+                                    backgroundColor: "white"
                                 }}
                             />
                         </div>
@@ -197,7 +207,9 @@ export default function RegisterPage() {
                                 borderRadius: "8px",
                                 fontSize: "14px",
                                 outline: "none",
-                                boxSizing: "border-box"
+                                boxSizing: "border-box",
+                                color: "#0f172a",
+                                backgroundColor: "white"
                             }}
                         />
                     </div>
@@ -219,7 +231,9 @@ export default function RegisterPage() {
                                 borderRadius: "8px",
                                 fontSize: "14px",
                                 outline: "none",
-                                boxSizing: "border-box"
+                                boxSizing: "border-box",
+                                color: "#0f172a",
+                                backgroundColor: "white"
                             }}
                         />
                     </div>
@@ -252,10 +266,24 @@ export default function RegisterPage() {
 
                 <p style={{ textAlign: "center", marginTop: "16px", fontSize: "12px", color: "#94a3b8" }}>
                     By signing up, you agree to our{" "}
-                    <Link href="/terms" style={{ color: "#64748b", textDecoration: "underline" }}>Terms</Link>
+                    <Link href="/terms/buyer" style={{ color: "#64748b", textDecoration: "underline" }}>Buyer Terms</Link>
                     {" "}and{" "}
                     <Link href="/privacy" style={{ color: "#64748b", textDecoration: "underline" }}>Privacy Policy</Link>
                 </p>
+
+                <Link
+                    href="/"
+                    style={{
+                        display: "block",
+                        textAlign: "center",
+                        marginTop: "16px",
+                        fontSize: "14px",
+                        color: "#64748b",
+                        textDecoration: "none"
+                    }}
+                >
+                    ← Back to Home
+                </Link>
             </div>
         </div>
     )

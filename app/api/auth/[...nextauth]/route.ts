@@ -69,6 +69,13 @@ export const authOptions: AuthOptions = {
         signIn: "/account/login",
         error: "/account/login",
     },
+    // Ensure proper branding - NEXTAUTH_URL must be set in .env
+    // Example: NEXTAUTH_URL=http://localhost:3000 or https://yourdomain.com
+    theme: {
+        colorScheme: "light",
+        brandColor: "#3b82f6",
+        logo: "/logo.png", // Add logo at public/logo.png
+    },
 }
 
 const handler = NextAuth(authOptions)

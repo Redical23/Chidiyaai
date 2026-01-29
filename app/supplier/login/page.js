@@ -98,7 +98,9 @@ export default function SupplierLogin() {
                                 borderRadius: "8px",
                                 fontSize: "14px",
                                 outline: "none",
-                                boxSizing: "border-box"
+                                boxSizing: "border-box",
+                                color: "#0f172a",
+                                backgroundColor: "white"
                             }}
                         />
                     </div>
@@ -132,7 +134,9 @@ export default function SupplierLogin() {
                                 borderRadius: "8px",
                                 fontSize: "14px",
                                 outline: "none",
-                                boxSizing: "border-box"
+                                boxSizing: "border-box",
+                                color: "#0f172a",
+                                backgroundColor: "white"
                             }}
                         />
                     </div>
@@ -163,10 +167,24 @@ export default function SupplierLogin() {
                 </p>
 
                 <div style={{ textAlign: "center", marginTop: "24px", paddingTop: "24px", borderTop: "1px solid #e2e8f0" }}>
-                    <Link href="/auth/signin" style={{ fontSize: "13px", color: "#64748b", textDecoration: "none" }}>
+                    <Link href="/account/login" style={{ fontSize: "13px", color: "#64748b", textDecoration: "none" }}>
                         Looking for Buyer Login? →
                     </Link>
                 </div>
+
+                <Link
+                    href="/"
+                    style={{
+                        display: "block",
+                        textAlign: "center",
+                        marginTop: "16px",
+                        fontSize: "14px",
+                        color: "#64748b",
+                        textDecoration: "none"
+                    }}
+                >
+                    ← Back to Home
+                </Link>
             </div>
         </div>
     );

@@ -157,6 +157,16 @@ export default function SupplierKYC() {
                     <Link href="/supplier" style={{ fontWeight: "bold", fontSize: "20px", color: "#0f172a", textDecoration: "none" }}>
                         Chidiya<span style={{ color: "#3b82f6" }}>AI</span>
                     </Link>
+                    <Link
+                        href="/supplier/register"
+                        style={{
+                            fontSize: "14px",
+                            color: "#64748b",
+                            textDecoration: "none"
+                        }}
+                    >
+                        ← Back
+                    </Link>
                 </div>
             </header>
 
@@ -219,7 +229,9 @@ export default function SupplierKYC() {
                                         border: "1px solid #e2e8f0",
                                         borderRadius: "8px",
                                         fontSize: "14px",
-                                        boxSizing: "border-box"
+                                        boxSizing: "border-box",
+                                        color: "#0f172a",
+                                        backgroundColor: "white"
                                     }}
                                 />
                             </div>
@@ -239,7 +251,8 @@ export default function SupplierKYC() {
                                         border: "1px solid #e2e8f0",
                                         borderRadius: "8px",
                                         fontSize: "14px",
-                                        boxSizing: "border-box"
+                                        boxSizing: "border-box",
+                                        color: "#0f172a"
                                     }}
                                 />
                             </div>
@@ -269,7 +282,9 @@ export default function SupplierKYC() {
                                         border: "1px solid #e2e8f0",
                                         borderRadius: "8px",
                                         fontSize: "14px",
-                                        boxSizing: "border-box"
+                                        boxSizing: "border-box",
+                                        color: "#0f172a",
+                                        backgroundColor: "white"
                                     }}
                                 />
                             </div>
@@ -289,7 +304,8 @@ export default function SupplierKYC() {
                                         border: "1px solid #e2e8f0",
                                         borderRadius: "8px",
                                         fontSize: "14px",
-                                        boxSizing: "border-box"
+                                        boxSizing: "border-box",
+                                        color: "#0f172a"
                                     }}
                                 />
                             </div>
@@ -318,7 +334,9 @@ export default function SupplierKYC() {
                                         border: "1px solid #e2e8f0",
                                         borderRadius: "8px",
                                         fontSize: "14px",
-                                        boxSizing: "border-box"
+                                        boxSizing: "border-box",
+                                        color: "#0f172a",
+                                        backgroundColor: "white"
                                     }}
                                 />
                             </div>
@@ -337,7 +355,8 @@ export default function SupplierKYC() {
                                         border: "1px solid #e2e8f0",
                                         borderRadius: "8px",
                                         fontSize: "14px",
-                                        boxSizing: "border-box"
+                                        boxSizing: "border-box",
+                                        color: "#0f172a"
                                     }}
                                 />
                             </div>
@@ -363,7 +382,8 @@ export default function SupplierKYC() {
                                     border: "1px solid #e2e8f0",
                                     borderRadius: "8px",
                                     fontSize: "14px",
-                                    backgroundColor: "white"
+                                    backgroundColor: "white",
+                                    color: "#0f172a"
                                 }}
                             >
                                 <option value="">Select if applicable</option>
@@ -389,7 +409,8 @@ export default function SupplierKYC() {
                                     border: "1px solid #e2e8f0",
                                     borderRadius: "8px",
                                     fontSize: "14px",
-                                    boxSizing: "border-box"
+                                    boxSizing: "border-box",
+                                    color: "#0f172a"
                                 }}
                             />
                         </div>

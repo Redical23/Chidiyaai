@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ConfirmDialog, { SuspensionDialog } from "../components/ConfirmDialog";
 
 const badgeTypes = [
-    { id: "gst", label: "GST ✓", color: "#22c55e" },
-    { id: "premium", label: "Premium ★", color: "#3b82f6" },
-    { id: "verified", label: "Verified ✓", color: "#8b5cf6" },
+    { id: "verified", label: "Verified ✓", color: "#8b5cf6", description: "Identity verified" },
+    { id: "gst", label: "GST ✓", color: "#22c55e", description: "GST registered" },
+    { id: "premium", label: "Premium ★", color: "#3b82f6", description: "Premium seller" },
+    { id: "top_rated", label: "Top Rated 🏆", color: "#f59e0b", description: "Highly rated" },
+    { id: "fast_delivery", label: "Fast Delivery 🚀", color: "#14b8a6", description: "Quick delivery" },
 ];
 
 const tabs = ["pending", "approved", "suspended", "banned"];
@@ -15,6 +18,13 @@ export default function SuppliersPage() {
     const [suppliers, setSuppliers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState(null);
+
+    // Dialog states
+    const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, supplier: null, action: null });
+    const [suspensionDialog, setSuspensionDialog] = useState({ isOpen: false, supplier: null });
+    const [badgeModal, setBadgeModal] = useState({ isOpen: false, supplier: null });
+    const [productsModal, setProductsModal] = useState({ isOpen: false, supplier: null, products: [] });
+    const [docsModal, setDocsModal] = useState({ isOpen: false, supplier: null });
 
     useEffect(() => {
         fetchSuppliers();
@@ -34,12 +44,25 @@ export default function SuppliersPage() {
 
     const filteredSuppliers = suppliers.filter(s => s.status === activeTab);
 
-    const handleAction = async (id, action) => {
+    const openConfirmDialog = (supplier, action) => {
+        setConfirmDialog({ isOpen: true, supplier, action });
+    };
+
+    const closeConfirmDialog = () => {
+        setConfirmDialog({ isOpen: false, supplier: null, action: null });
+    };
+
+    const handleConfirmedAction = async () => {
+        const { supplier, action } = confirmDialog;
+        await handleAction(supplier.id, action);
+    };
+
+    const handleAction = async (id, action, extraData = {}) => {
         try {
             const res = await fetch("/api/admin/suppliers", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id, action }),
+                body: JSON.stringify({ id, action, ...extraData }),
             });
 
             if (res.ok) {
@@ -51,8 +74,39 @@ export default function SuppliersPage() {
         }
     };
 
+    const handleSuspendWithDuration = async (days) => {
+        const { supplier } = suspensionDialog;
+        await handleAction(supplier.id, "suspend", { suspensionDays: days });
+    };
+
+    const handleBadgeUpdate = async (supplierId, selectedBadges) => {
+        await handleAction(supplierId, "update_badges", { badges: selectedBadges });
+        setBadgeModal({ isOpen: false, supplier: null });
+    };
+
     const toggleExpand = (id) => {
         setExpandedId(expandedId === id ? null : id);
+    };
+
+    const getAverageRating = (ratings) => {
+        if (!ratings || ratings.length === 0) return null;
+        const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+        return avg.toFixed(1);
+    };
+
+    const getDialogConfig = (action) => {
+        switch (action) {
+            case "approve":
+                return { title: "Approve Supplier", message: "Are you sure you want to approve this supplier?", type: "info", confirmText: "Approve" };
+            case "reject":
+                return { title: "Reject Supplier", message: "This will move the supplier back to pending status.", type: "warning", confirmText: "Reject" };
+            case "ban":
+                return { title: "Ban Supplier", message: "This will permanently ban the supplier. This action is severe.", type: "danger", confirmText: "Ban Permanently" };
+            case "restore":
+                return { title: "Restore Supplier", message: "This will restore the supplier to approved status.", type: "info", confirmText: "Restore" };
+            default:
+                return { title: "Confirm Action", message: "Are you sure?", type: "warning", confirmText: "Confirm" };
+        }
     };
 
     if (loading) {
@@ -93,19 +147,30 @@ export default function SuppliersPage() {
                 .sup-btn-approve:hover { background: #16a34a; }
                 .sup-btn-reject { background: transparent; color: #ef4444; border: 1px solid #ef4444; }
                 .sup-btn-reject:hover { background: #ef444420; }
+                .sup-btn-suspend { background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b; }
+                .sup-btn-suspend:hover { background: #f59e0b30; }
+                .sup-btn-ban { background: #ef4444; color: white; }
+                .sup-btn-ban:hover { background: #dc2626; }
                 .sup-btn-restore { background: #22c55e20; color: #22c55e; border: 1px solid #22c55e; }
                 .sup-btn-restore:hover { background: #22c55e30; }
+                .sup-btn-badge { background: #8b5cf620; color: #8b5cf6; border: 1px solid #8b5cf6; }
+                .sup-btn-badge:hover { background: #8b5cf630; }
+                .sup-btn-view { background: #334155; color: #94a3b8; }
+                .sup-btn-view:hover { background: #475569; }
                 .sup-empty { background: #1e293b; border-radius: 12px; padding: 60px 40px; text-align: center; color: #64748b; }
                 .sup-expand-icon { transition: transform 0.2s; font-size: 12px; color: #64748b; }
                 .sup-expand-icon.expanded { transform: rotate(180deg); }
                 .sup-doc-list { display: flex; flex-wrap: wrap; gap: 8px; }
-                .sup-doc-item { padding: 6px 12px; background: #334155; border-radius: 6px; font-size: 12px; color: #e2e8f0; display: flex; align-items: center; gap: 6px; }
+                .sup-doc-item { padding: 6px 12px; background: #334155; border-radius: 6px; font-size: 12px; color: #e2e8f0; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+                .sup-doc-item:hover { background: #475569; }
                 .sup-doc-status { width: 8px; height: 8px; border-radius: 50%; }
                 .sup-doc-status.pending { background: #f59e0b; }
                 .sup-doc-status.verified { background: #22c55e; }
                 .sup-doc-status.rejected { background: #ef4444; }
                 .sup-categories { display: flex; flex-wrap: wrap; gap: 6px; }
                 .sup-category { padding: 4px 10px; background: #334155; border-radius: 12px; font-size: 11px; color: #94a3b8; }
+                .sup-rating { display: flex; align-items: center; gap: 4px; padding: 4px 10px; background: #f59e0b20; border-radius: 8px; color: #f59e0b; font-size: 13px; font-weight: 600; }
+                .sup-suspended-until { padding: 8px 12px; background: #f59e0b20; border-radius: 6px; border: 1px solid #f59e0b40; color: #f59e0b; font-size: 12px; margin-bottom: 12px; }
                 
                 @media (min-width: 768px) {
                     .sup-title { font-size: 28px; }
@@ -116,7 +181,7 @@ export default function SuppliersPage() {
             {/* Header */}
             <div style={{ marginBottom: "24px" }}>
                 <h1 className="sup-title">Supplier Management</h1>
-                <p style={{ color: "#64748b", fontSize: "14px" }}>Review applications, approve suppliers, and manage badges</p>
+                <p style={{ color: "#64748b", fontSize: "14px" }}>Review applications, approve suppliers, manage badges and view details</p>
             </div>
 
             {/* Tabs */}
@@ -151,10 +216,29 @@ export default function SuppliersPage() {
                     <div key={supplier.id} className="sup-card">
                         <div className="sup-card-header" onClick={() => toggleExpand(supplier.id)}>
                             <div className="sup-card-name">
-                                <span>{supplier.companyName}</span>
+                                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                    <span>{supplier.companyName}</span>
+                                    {/* Average Rating */}
+                                    {supplier.ratings && supplier.ratings.length > 0 && (
+                                        <span className="sup-rating">
+                                            ⭐ {getAverageRating(supplier.ratings)}
+                                            <span style={{ fontWeight: "400", fontSize: "11px" }}>({supplier.ratings.length})</span>
+                                        </span>
+                                    )}
+                                </div>
                                 <span className={`sup-expand-icon ${expandedId === supplier.id ? 'expanded' : ''}`}>▼</span>
                             </div>
 
+                            {/* Suspended Until Notice */}
+                            {supplier.status === "suspended" && supplier.suspendedUntil && (
+                                <div className="sup-suspended-until">
+                                    ⏱️ Suspended until: {new Date(supplier.suspendedUntil).toLocaleDateString('en-IN', {
+                                        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Badges */}
                             {supplier.badges && supplier.badges.length > 0 && (
                                 <div className="sup-card-badges">
                                     {supplier.badges.map((badgeId) => {
@@ -169,30 +253,54 @@ export default function SuppliersPage() {
                             )}
 
                             <div className="sup-card-meta">
-                                📧 {supplier.email} • 📱 {supplier.phone || "N/A"}
+                                📧 {supplier.email} • 📱 {supplier.phone || "N/A"} • 📍 {supplier.city || supplier.serviceLocations || "N/A"}
                             </div>
 
                             <div className="sup-card-actions" onClick={(e) => e.stopPropagation()}>
+                                {/* Pending Actions */}
                                 {supplier.status === "pending" && (
                                     <>
-                                        <button onClick={() => handleAction(supplier.id, "approve")} className="sup-btn sup-btn-approve">
+                                        <button onClick={() => openConfirmDialog(supplier, "approve")} className="sup-btn sup-btn-approve">
                                             ✓ Approve
                                         </button>
-                                        <button onClick={() => handleAction(supplier.id, "suspend")} className="sup-btn sup-btn-reject">
+                                        <button onClick={() => openConfirmDialog(supplier, "ban")} className="sup-btn sup-btn-reject">
                                             ✗ Reject
                                         </button>
                                     </>
                                 )}
+
+                                {/* Approved Actions */}
                                 {supplier.status === "approved" && (
-                                    <button onClick={() => handleAction(supplier.id, "suspend")} className="sup-btn sup-btn-reject">
-                                        Suspend
-                                    </button>
+                                    <>
+                                        <button onClick={() => setSuspensionDialog({ isOpen: true, supplier })} className="sup-btn sup-btn-suspend">
+                                            ⏱️ Suspend
+                                        </button>
+                                        <button onClick={() => openConfirmDialog(supplier, "reject")} className="sup-btn sup-btn-reject">
+                                            ↩ Rollback
+                                        </button>
+                                        <button onClick={() => openConfirmDialog(supplier, "ban")} className="sup-btn sup-btn-ban">
+                                            ⛔ Ban
+                                        </button>
+                                        <button onClick={() => setBadgeModal({ isOpen: true, supplier })} className="sup-btn sup-btn-badge">
+                                            🏅 Badges
+                                        </button>
+                                    </>
                                 )}
+
+                                {/* Suspended/Banned Actions */}
                                 {(supplier.status === "suspended" || supplier.status === "banned") && (
-                                    <button onClick={() => handleAction(supplier.id, "restore")} className="sup-btn sup-btn-restore">
+                                    <button onClick={() => openConfirmDialog(supplier, "restore")} className="sup-btn sup-btn-restore">
                                         ↩ Restore
                                     </button>
                                 )}
+
+                                {/* Common Actions */}
+                                <button onClick={() => setDocsModal({ isOpen: true, supplier })} className="sup-btn sup-btn-view">
+                                    📄 Docs
+                                </button>
+                                <button onClick={() => setProductsModal({ isOpen: true, supplier, products: supplier.products || [] })} className="sup-btn sup-btn-view">
+                                    📦 Products
+                                </button>
                             </div>
                         </div>
 
@@ -271,24 +379,251 @@ export default function SuppliersPage() {
                                     {supplier.documents && supplier.documents.length > 0 ? (
                                         <div className="sup-doc-list">
                                             {supplier.documents.map((doc, i) => (
-                                                <div key={i} className="sup-doc-item">
+                                                <a
+                                                    key={i}
+                                                    href={doc.fileUrl || "#"}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="sup-doc-item"
+                                                >
                                                     <span className={`sup-doc-status ${doc.status}`}></span>
                                                     <span>{doc.fileName || doc.docType}</span>
                                                     <span style={{ color: "#64748b", fontSize: "10px", textTransform: "uppercase" }}>
                                                         ({doc.status})
                                                     </span>
-                                                </div>
+                                                </a>
                                             ))}
                                         </div>
                                     ) : (
                                         <div style={{ color: "#64748b", fontSize: "14px" }}>No documents submitted</div>
                                     )}
                                 </div>
+
+                                {/* Ratings */}
+                                {supplier.ratings && supplier.ratings.length > 0 && (
+                                    <div className="sup-detail-section">
+                                        <div className="sup-detail-title">⭐ Customer Ratings ({supplier.ratings.length})</div>
+                                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                            {supplier.ratings.map((rating, i) => (
+                                                <div key={i} style={{ padding: "12px", background: "#1e293b", borderRadius: "8px", border: "1px solid #334155" }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                                                        <span style={{ color: "#f59e0b" }}>{"⭐".repeat(rating.rating)}</span>
+                                                        <span style={{ color: "#64748b", fontSize: "12px" }}>
+                                                            {new Date(rating.createdAt).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                    {rating.review && (
+                                                        <div style={{ color: "#94a3b8", fontSize: "13px" }}>{rating.review}</div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
                 ))
             )}
+
+            {/* Confirm Dialog */}
+            {confirmDialog.isOpen && (
+                <ConfirmDialog
+                    isOpen={confirmDialog.isOpen}
+                    onClose={closeConfirmDialog}
+                    onConfirm={handleConfirmedAction}
+                    {...getDialogConfig(confirmDialog.action)}
+                    message={`${getDialogConfig(confirmDialog.action).message} (${confirmDialog.supplier?.companyName})`}
+                />
+            )}
+
+            {/* Suspension Dialog */}
+            {suspensionDialog.isOpen && (
+                <SuspensionDialog
+                    isOpen={suspensionDialog.isOpen}
+                    onClose={() => setSuspensionDialog({ isOpen: false, supplier: null })}
+                    onConfirm={handleSuspendWithDuration}
+                    supplierName={suspensionDialog.supplier?.companyName}
+                />
+            )}
+
+            {/* Badge Modal */}
+            {badgeModal.isOpen && (
+                <BadgeModal
+                    supplier={badgeModal.supplier}
+                    onClose={() => setBadgeModal({ isOpen: false, supplier: null })}
+                    onSave={handleBadgeUpdate}
+                />
+            )}
+
+            {/* Products Modal */}
+            {productsModal.isOpen && (
+                <ProductsModal
+                    supplier={productsModal.supplier}
+                    products={productsModal.products}
+                    onClose={() => setProductsModal({ isOpen: false, supplier: null, products: [] })}
+                />
+            )}
+
+            {/* Documents Modal */}
+            {docsModal.isOpen && (
+                <DocsModal
+                    supplier={docsModal.supplier}
+                    onClose={() => setDocsModal({ isOpen: false, supplier: null })}
+                />
+            )}
+        </div>
+    );
+}
+
+// Badge Assignment Modal
+function BadgeModal({ supplier, onClose, onSave }) {
+    const [selectedBadges, setSelectedBadges] = useState(supplier.badges || []);
+
+    const toggleBadge = (badgeId) => {
+        setSelectedBadges(prev =>
+            prev.includes(badgeId)
+                ? prev.filter(b => b !== badgeId)
+                : [...prev, badgeId]
+        );
+    };
+
+    return (
+        <div style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "20px"
+        }}>
+            <div style={{ backgroundColor: "#1e293b", borderRadius: "16px", border: "1px solid #334155", maxWidth: "450px", width: "100%", padding: "24px" }}>
+                <h3 style={{ color: "white", fontSize: "20px", marginBottom: "8px" }}>🏅 Manage Badges</h3>
+                <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "20px" }}>{supplier.companyName}</p>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px" }}>
+                    {badgeTypes.map(badge => (
+                        <button
+                            key={badge.id}
+                            onClick={() => toggleBadge(badge.id)}
+                            style={{
+                                display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px",
+                                backgroundColor: selectedBadges.includes(badge.id) ? `${badge.color}20` : "#0f172a",
+                                border: `1px solid ${selectedBadges.includes(badge.id) ? badge.color : "#334155"}`,
+                                borderRadius: "8px", cursor: "pointer", textAlign: "left"
+                            }}
+                        >
+                            <span style={{ fontSize: "20px" }}>{badge.label.split(" ").pop()}</span>
+                            <div>
+                                <div style={{ color: selectedBadges.includes(badge.id) ? badge.color : "white", fontWeight: "500" }}>{badge.label}</div>
+                                <div style={{ color: "#64748b", fontSize: "12px" }}>{badge.description}</div>
+                            </div>
+                            {selectedBadges.includes(badge.id) && (
+                                <span style={{ marginLeft: "auto", color: badge.color }}>✓</span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+
+                <div style={{ display: "flex", gap: "12px" }}>
+                    <button onClick={onClose} style={{ flex: 1, padding: "12px", backgroundColor: "#334155", color: "#94a3b8", border: "none", borderRadius: "8px", cursor: "pointer" }}>Cancel</button>
+                    <button onClick={() => onSave(supplier.id, selectedBadges)} style={{ flex: 1, padding: "12px", backgroundColor: "#8b5cf6", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" }}>Save Badges</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Products Modal
+function ProductsModal({ supplier, products, onClose }) {
+    return (
+        <div style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "20px"
+        }}>
+            <div style={{ backgroundColor: "#1e293b", borderRadius: "16px", border: "1px solid #334155", maxWidth: "600px", width: "100%", padding: "24px", maxHeight: "80vh", overflow: "auto" }}>
+                <h3 style={{ color: "white", fontSize: "20px", marginBottom: "8px" }}>📦 Products & Categories</h3>
+                <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "20px" }}>{supplier.companyName}</p>
+
+                {products.length === 0 ? (
+                    <div style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
+                        <div style={{ fontSize: "48px", marginBottom: "12px" }}>📭</div>
+                        No products listed yet
+                    </div>
+                ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                        {products.map((product, i) => (
+                            <div key={i} style={{ padding: "16px", backgroundColor: "#0f172a", borderRadius: "8px", border: "1px solid #334155" }}>
+                                <div style={{ color: "white", fontWeight: "500", marginBottom: "4px" }}>{product.name}</div>
+                                {product.category && <div style={{ color: "#3b82f6", fontSize: "12px", marginBottom: "4px" }}>{product.category}</div>}
+                                {product.description && <div style={{ color: "#94a3b8", fontSize: "13px", marginBottom: "8px" }}>{product.description}</div>}
+                                <div style={{ display: "flex", gap: "16px", fontSize: "12px", color: "#64748b" }}>
+                                    {product.priceRange && <span>💰 {product.priceRange}</span>}
+                                    {product.moq && <span>📦 MOQ: {product.moq}</span>}
+                                    {product.leadTime && <span>⏱️ {product.leadTime}</span>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                <button onClick={onClose} style={{ marginTop: "20px", width: "100%", padding: "12px", backgroundColor: "#334155", color: "#94a3b8", border: "none", borderRadius: "8px", cursor: "pointer" }}>Close</button>
+            </div>
+        </div>
+    );
+}
+
+// Documents Modal
+function DocsModal({ supplier, onClose }) {
+    const docs = supplier.documents || [];
+
+    return (
+        <div style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "20px"
+        }}>
+            <div style={{ backgroundColor: "#1e293b", borderRadius: "16px", border: "1px solid #334155", maxWidth: "500px", width: "100%", padding: "24px" }}>
+                <h3 style={{ color: "white", fontSize: "20px", marginBottom: "8px" }}>📄 Submitted Documents</h3>
+                <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "20px" }}>{supplier.companyName}</p>
+
+                {docs.length === 0 ? (
+                    <div style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
+                        <div style={{ fontSize: "48px", marginBottom: "12px" }}>📭</div>
+                        No documents submitted
+                    </div>
+                ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        {docs.map((doc, i) => (
+                            <a
+                                key={i}
+                                href={doc.fileUrl || "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                                    padding: "14px 16px", backgroundColor: "#0f172a", borderRadius: "8px",
+                                    border: "1px solid #334155", textDecoration: "none"
+                                }}
+                            >
+                                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                    <span style={{ fontSize: "20px" }}>📁</span>
+                                    <div>
+                                        <div style={{ color: "white", fontWeight: "500" }}>{doc.fileName || doc.docType}</div>
+                                        <div style={{ color: "#64748b", fontSize: "12px" }}>{doc.docType}</div>
+                                    </div>
+                                </div>
+                                <span style={{
+                                    padding: "4px 10px",
+                                    borderRadius: "12px",
+                                    fontSize: "11px",
+                                    backgroundColor: doc.status === "verified" ? "#22c55e20" : doc.status === "rejected" ? "#ef444420" : "#f59e0b20",
+                                    color: doc.status === "verified" ? "#22c55e" : doc.status === "rejected" ? "#ef4444" : "#f59e0b"
+                                }}>
+                                    {doc.status}
+                                </span>
+                            </a>
+                        ))}
+                    </div>
+                )}
+
+                <button onClick={onClose} style={{ marginTop: "20px", width: "100%", padding: "12px", backgroundColor: "#334155", color: "#94a3b8", border: "none", borderRadius: "8px", cursor: "pointer" }}>Close</button>
+            </div>
         </div>
     );
 }

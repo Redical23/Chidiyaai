@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
-import { RollingTextList } from "@/app/components/ui/rolling-list";
-import { MagneticText } from "@/app/components/ui/morphing-cursor";
-import { RatingInteraction } from "@/app/components/ui/emoji-rating";
+import { useState, useEffect, useRef, useCallback } from "react";
+import dynamic from "next/dynamic";
 import Navbar from "@/app/components/ui/navbar";
 import { useIsMobile } from "@/app/hooks/useIsMobile";
+
+// Dynamic imports for heavy components (bundle-dynamic-imports)
+const RollingTextList = dynamic(() => import("@/app/components/ui/rolling-list").then(mod => ({ default: mod.RollingTextList })), { ssr: false });
+const MagneticText = dynamic(() => import("@/app/components/ui/morphing-cursor").then(mod => ({ default: mod.MagneticText })), { ssr: false });
+const RatingInteraction = dynamic(() => import("@/app/components/ui/emoji-rating").then(mod => ({ default: mod.RatingInteraction })), { ssr: false });
 
 // Menu items for navbar
 const navMenus = [
@@ -68,6 +71,73 @@ export default function Home() {
 
   const openSubOptions = () => {
     setShowSubOptions(true);
+  };
+
+  // Buyer subscription - opens Razorpay for ₹499
+  const handleBuyerSubscribe = async () => {
+    if (!user) {
+      // Redirect to buyer login if not authenticated
+      router.push("/account/login?redirect=/account/chat");
+      return;
+    }
+
+    setSubLoading(true);
+    const amount = 49900; // ₹499 in paise
+
+    try {
+      const res = await fetch("/api/payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, email: user.email, plan: "buyer_pro" }),
+      });
+
+      const order = await res.json();
+      if (!res.ok) throw new Error(order.error || "Payment initiation failed");
+      if (!order.id) throw new Error("Payment initiation failed! No Order ID returned.");
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount,
+        currency: "INR",
+        name: "ChidiyaAI",
+        description: "Buyer Pro Subscription - ₹499/mo",
+        order_id: order.id,
+        handler: async (response: any) => {
+          const expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+          try {
+            const updateRes = await fetch("/api/users/updateSubscription", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: user.email,
+                subscribe: true,
+                subscriptionExpiry: expiryDate,
+                orderId: order.id,
+                plan: "buyer_pro",
+              }),
+            });
+
+            if (!updateRes.ok) throw new Error("Failed to update subscription");
+
+            alert("Subscription activated successfully! You now have unlimited enquiries.");
+            setIsSubscribed(true);
+          } catch (error) {
+            console.error("Subscription update failed:", error);
+            alert("Payment succeeded, but subscription update failed. Please contact support.");
+          }
+          setSubLoading(false);
+        },
+        prefill: { email: user.email },
+        theme: { color: "#3b82f6" },
+      };
+
+      const rzp1 = new (window as any).Razorpay(options);
+      rzp1.open();
+    } catch (error: any) {
+      alert(error.message);
+      setSubLoading(false);
+    }
   };
 
   const handleRenew = () => {
@@ -244,7 +314,7 @@ export default function Home() {
             </div>
 
             <p style={{ fontSize: isMobile ? "16px" : "20px", color: "#64748b", marginBottom: "40px", lineHeight: "1.6", padding: isMobile ? "0 8px" : "0" }}>
-              ChidiyaAI is your AI-powered B2B sourcing partner. Get matched with verified wholesalers, compare prices, and close deals — all in one place.
+              ChidiyaAI helps you find the right suppliers, compare prices, and close deals faster.
             </p>
 
             {/* Prominent Search Box */}
@@ -273,35 +343,53 @@ export default function Home() {
                   backgroundColor: "transparent"
                 }}
               />
-              <Link href="/account/register" style={{
-                backgroundColor: "#3b82f6",
-                color: "white",
-                padding: isMobile ? "16px" : "20px 32px",
-                textDecoration: "none",
-                fontWeight: "600",
-                fontSize: "16px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px"
-              }}>
+              <button
+                onClick={() => {
+                  // Store query in sessionStorage for use in chat
+                  if (searchQuery) {
+                    sessionStorage.setItem('pendingSearchQuery', searchQuery);
+                  }
+                  // Always go directly to chat
+                  router.push('/account/chat');
+                }}
+                style={{
+                  backgroundColor: "#3b82f6",
+                  color: "white",
+                  padding: isMobile ? "16px" : "20px 32px",
+                  border: "none",
+                  fontWeight: "600",
+                  fontSize: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  cursor: "pointer"
+                }}
+              >
                 Search
                 <span>→</span>
-              </Link>
+              </button>
             </div>
 
             <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "center", gap: "16px", padding: isMobile ? "0 16px" : "0" }}>
-              <Link href="/account/register" style={{
-                backgroundColor: "#0f172a",
-                color: "white",
-                padding: "14px 28px",
-                borderRadius: "8px",
-                textDecoration: "none",
-                fontWeight: "500",
-                textAlign: "center"
-              }}>
+              <button
+                onClick={() => {
+                  // Go directly to chat
+                  router.push('/account/chat');
+                }}
+                style={{
+                  backgroundColor: "#0f172a",
+                  color: "white",
+                  padding: "14px 28px",
+                  borderRadius: "8px",
+                  border: "none",
+                  fontWeight: "500",
+                  textAlign: "center",
+                  cursor: "pointer"
+                }}
+              >
                 Start Sourcing Free
-              </Link>
+              </button>
               <Link href="#meet-chidi" style={{
                 backgroundColor: "white",
                 color: "#0f172a",
@@ -364,7 +452,7 @@ export default function Home() {
               Meet Chidiya
             </span>
             <h2 style={{ fontSize: isMobile ? "28px" : "42px", fontWeight: "bold", color: "#0f172a", marginBottom: "20px", lineHeight: "1.2" }}>
-              Your Always-On{!isMobile && <br />}Wholesale Assistant
+              AI That Works for{!isMobile && <br />}Your Business
             </h2>
           </div>
 
@@ -390,14 +478,14 @@ export default function Home() {
                 🤖 AGENT MODE
               </div>
               <h3 style={{ fontSize: "28px", fontWeight: "bold", color: "#0f172a", marginBottom: "16px" }}>
-                Deals sent to you, personally matched
+                Deals matched just for you
               </h3>
               <p style={{ fontSize: "16px", color: "#64748b", marginBottom: "24px", lineHeight: "1.7" }}>
-                Chidiya monitors opportunities and sends you deals that match your profile, activity, and preferences — without you lifting a finger.
+                Chidiya finds and sends the right deals based on what matters to your business.
               </p>
               <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#3b82f6", fontWeight: "500" }}>
                 <span>📧</span>
-                <span>Receive curated deals via email from Chidiya</span>
+                <span>ChidiyaAI monitors opportunities and delivers personally matched deals — automatically.</span>
               </div>
             </div>
             <div style={{
@@ -600,10 +688,10 @@ export default function Home() {
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "32px" : "60px", alignItems: "center" }}>
             <div>
               <h2 style={{ fontSize: isMobile ? "28px" : "40px", fontWeight: "bold", color: "#0f172a", marginBottom: "20px", lineHeight: "1.2" }}>
-                Simplify the way you find new products for your store
+                Simplify the way you find new products for your store.
               </h2>
               <p style={{ fontSize: isMobile ? "16px" : "18px", color: "#64748b", marginBottom: "32px", lineHeight: "1.7" }}>
-                Stop wasting hours on IndiaMart. ChidiyaAI brings verified suppliers directly to you, with transparent pricing and instant communication.
+                Stop wasting time on outdated sourcing methods. ChidiyaAI connects you with verified suppliers, transparent pricing, and instant communication — all in one place.
               </p>
               <Link href="/account/register" style={{
                 display: "inline-flex",
@@ -704,47 +792,33 @@ export default function Home() {
             <h2 style={{ fontSize: isMobile ? "28px" : "40px", fontWeight: "bold", color: "#0f172a", marginBottom: "16px" }}>
               Simple, Transparent Pricing
             </h2>
-            <p style={{ fontSize: isMobile ? "16px" : "18px", color: "#64748b", marginBottom: "24px" }}>
+            <p style={{ fontSize: isMobile ? "16px" : "18px", color: "#64748b" }}>
               Start free. Upgrade when you're ready.
             </p>
-
-            {/* Monthly/Yearly Toggle Placeholder */}
-            <Link href="/pricing" style={{
-              display: "inline-block",
-              padding: "12px 24px",
-              backgroundColor: "#0f172a",
-              color: "white",
-              borderRadius: "8px",
-              textDecoration: "none",
-              fontSize: "14px",
-              fontWeight: "500"
-            }}>
-              View Full Pricing →
-            </Link>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: "24px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)", gap: "24px", maxWidth: "700px", margin: "0 auto" }}>
             {/* Free */}
             <div style={{ backgroundColor: "white", borderRadius: "16px", padding: "32px", border: "1px solid #e2e8f0" }}>
               <h3 style={{ fontSize: "20px", fontWeight: "bold", color: "#0f172a", marginBottom: "4px" }}>Free</h3>
               <p style={{ fontSize: "14px", color: "#64748b", marginBottom: "20px" }}>For trying out</p>
               <div style={{ fontSize: "40px", fontWeight: "bold", color: "#0f172a", marginBottom: "24px" }}>₹0</div>
               <ul style={{ listStyle: "none", padding: 0, marginBottom: "24px" }}>
-                <li style={{ padding: "8px 0", fontSize: "14px", color: "#475569" }}>✓ 10 searches/month</li>
-                <li style={{ padding: "8px 0", fontSize: "14px", color: "#475569" }}>✓ Basic matching</li>
+                <li style={{ padding: "8px 0", fontSize: "14px", color: "#475569" }}>✓ 5 free enquiries</li>
+                <li style={{ padding: "8px 0", fontSize: "14px", color: "#475569" }}>✓ Basic supplier matching</li>
                 <li style={{ padding: "8px 0", fontSize: "14px", color: "#475569" }}>✓ Email support</li>
               </ul>
-              <Link href="/onboarding" style={{ display: "block", textAlign: "center", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", color: "#0f172a", textDecoration: "none", fontWeight: "500" }}>Get Started</Link>
+              <Link href="/account/chat" style={{ display: "block", textAlign: "center", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", color: "#0f172a", textDecoration: "none", fontWeight: "500" }}>Get Started</Link>
             </div>
 
             {/* Pro */}
-            <div style={{ backgroundColor: "#0f172a", borderRadius: "16px", padding: isMobile ? "24px" : "32px", color: "white", transform: isMobile ? "none" : "scale(1.05)" }}>
+            <div style={{ backgroundColor: "#0f172a", borderRadius: "16px", padding: isMobile ? "24px" : "32px", color: "white" }}>
               <span style={{ display: "inline-block", padding: "4px 12px", backgroundColor: "#3b82f6", borderRadius: "20px", fontSize: "12px", marginBottom: "12px" }}>Most Popular</span>
               <h3 style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "4px" }}>Pro</h3>
-              <p style={{ fontSize: "14px", color: "#94a3b8", marginBottom: "20px" }}>For growing businesses</p>
-              <div style={{ fontSize: "40px", fontWeight: "bold", marginBottom: "24px" }}>₹2,999<span style={{ fontSize: "16px", fontWeight: "normal", color: "#94a3b8" }}>/mo</span></div>
+              <p style={{ fontSize: "14px", color: "#94a3b8", marginBottom: "20px" }}>For serious buyers</p>
+              <div style={{ fontSize: "40px", fontWeight: "bold", marginBottom: "24px" }}>₹499<span style={{ fontSize: "16px", fontWeight: "normal", color: "#94a3b8" }}>/mo</span></div>
               <ul style={{ listStyle: "none", padding: 0, marginBottom: "24px" }}>
-                <li style={{ padding: "8px 0", fontSize: "14px", color: "#cbd5e1" }}>✓ Unlimited searches</li>
+                <li style={{ padding: "8px 0", fontSize: "14px", color: "#cbd5e1" }}>✓ Unlimited enquiries</li>
                 <li style={{ padding: "8px 0", fontSize: "14px", color: "#cbd5e1" }}>✓ Advanced AI matching</li>
                 <li style={{ padding: "8px 0", fontSize: "14px", color: "#cbd5e1" }}>✓ Priority support</li>
                 <li style={{ padding: "8px 0", fontSize: "14px", color: "#cbd5e1" }}>✓ Supplier verification reports</li>
@@ -755,44 +829,14 @@ export default function Home() {
                 </button>
               ) : (
                 <button
-                  onClick={openSubOptions}
+                  onClick={handleBuyerSubscribe}
                   disabled={subLoading}
                   className="block w-full text-center p-3 bg-white rounded-lg text-[#0f172a] font-medium hover:bg-gray-100 transition-colors"
                 >
-                  {subLoading ? "Processing..." : "Start Free Trial"}
+                  {subLoading ? "Processing..." : "Subscribe Now"}
                 </button>
               )}
             </div>
-
-            {/* Enterprise */}
-            <div style={{ backgroundColor: "white", borderRadius: "16px", padding: "32px", border: "1px solid #e2e8f0" }}>
-              <h3 style={{ fontSize: "20px", fontWeight: "bold", color: "#0f172a", marginBottom: "4px" }}>Enterprise</h3>
-              <p style={{ fontSize: "14px", color: "#64748b", marginBottom: "20px" }}>For large organizations</p>
-              <div style={{ fontSize: "40px", fontWeight: "bold", color: "#0f172a", marginBottom: "24px" }}>Custom</div>
-              <ul style={{ listStyle: "none", padding: 0, marginBottom: "24px" }}>
-                <li style={{ padding: "8px 0", fontSize: "14px", color: "#475569" }}>✓ Everything in Pro</li>
-                <li style={{ padding: "8px 0", fontSize: "14px", color: "#475569" }}>✓ Dedicated account manager</li>
-                <li style={{ padding: "8px 0", fontSize: "14px", color: "#475569" }}>✓ API access</li>
-                <li style={{ padding: "8px 0", fontSize: "14px", color: "#475569" }}>✓ Custom integrations</li>
-              </ul>
-              <Link href="/contact" style={{ display: "block", textAlign: "center", padding: "12px", border: "1px solid #e2e8f0", borderRadius: "8px", color: "#0f172a", textDecoration: "none", fontWeight: "500" }}>Contact Sales</Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section style={{ padding: isMobile ? "60px 16px" : "100px 24px", backgroundColor: "#0f172a" }}>
-        <div style={{ maxWidth: "700px", margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontSize: isMobile ? "28px" : "40px", fontWeight: "bold", color: "white", marginBottom: "16px" }}>
-            Ready to transform your B2B sourcing?
-          </h2>
-          <p style={{ fontSize: isMobile ? "16px" : "18px", color: "#94a3b8", marginBottom: "32px" }}>
-            Join hundreds of businesses saving time and money with ChidiyaAI
-          </p>
-          <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
-            <Link href="/onboarding" style={{ backgroundColor: "white", color: "#0f172a", padding: "16px 32px", borderRadius: "8px", textDecoration: "none", fontWeight: "500" }}>Get Started Free</Link>
-            <Link href="/contact" style={{ border: "1px solid #475569", color: "white", padding: "16px 32px", borderRadius: "8px", textDecoration: "none", fontWeight: "500" }}>Talk to Sales</Link>
           </div>
         </div>
       </section>
@@ -807,77 +851,116 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer with Social Links */}
-      <footer style={{ padding: isMobile ? "40px 16px" : "60px 24px", backgroundColor: "#0f172a", borderTop: "1px solid #1e293b" }}>
-        <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr 1fr" : "2fr 1fr 1fr 1fr 1fr",
-            gap: isMobile ? "24px" : "40px",
-            marginBottom: "40px"
-          }}>
-            <div>
-              <div style={{ fontWeight: "bold", fontSize: "20px", color: "white", marginBottom: "12px" }}>
-                Chidiya<span style={{ color: "#3b82f6" }}>AI</span>
-              </div>
-              <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "20px" }}>
-                AI-powered B2B sourcing platform for Indian businesses.
-              </p>
-              {/* Social Icons */}
-              <div style={{ display: "flex", gap: "12px" }}>
-                {["Twitter", "LinkedIn", "Instagram", "YouTube"].map((social, i) => (
-                  <a key={i} href="#" style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "8px",
-                    backgroundColor: "#1e293b",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#64748b",
-                    fontSize: "12px",
-                    textDecoration: "none"
+      {/* Footer with Legal Links & Marquee */}
+      <footer style={{ backgroundColor: "#0f172a", borderTop: "1px solid #1e293b" }}>
+        <div style={{ padding: isMobile ? "40px 16px" : "60px 24px" }}>
+          <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr 1fr" : "2fr 1fr 1fr 1fr 1fr",
+              gap: isMobile ? "24px" : "40px",
+              marginBottom: "40px"
+            }}>
+              <div>
+                <Link href="/" style={{ display: "inline-block", marginBottom: "12px" }}>
+                  <img src="/assests/chidiyaailogo.png" alt="ChidiyaAI" style={{ height: "40px", width: "auto" }} />
+                </Link>
+                <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "20px" }}>
+                  AI-powered B2B sourcing platform for Indian businesses.
+                </p>
+                {/* Social Media Icons */}
+                <div style={{ display: "flex", gap: "12px" }}>
+                  <a href="https://twitter.com/chidiyaai" target="_blank" rel="noopener noreferrer" style={{
+                    width: "36px", height: "36px", borderRadius: "8px", backgroundColor: "#1e293b",
+                    display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", textDecoration: "none"
                   }}>
-                    {social[0]}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
                   </a>
-                ))}
+                  <a href="https://linkedin.com/company/chidiyaai" target="_blank" rel="noopener noreferrer" style={{
+                    width: "36px", height: "36px", borderRadius: "8px", backgroundColor: "#1e293b",
+                    display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", textDecoration: "none"
+                  }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg>
+                  </a>
+                  <a href="https://instagram.com/chidiyaai" target="_blank" rel="noopener noreferrer" style={{
+                    width: "36px", height: "36px", borderRadius: "8px", backgroundColor: "#1e293b",
+                    display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", textDecoration: "none"
+                  }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" /></svg>
+                  </a>
+                  <a href="https://youtube.com/@chidiyaai" target="_blank" rel="noopener noreferrer" style={{
+                    width: "36px", height: "36px", borderRadius: "8px", backgroundColor: "#1e293b",
+                    display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", textDecoration: "none"
+                  }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg>
+                  </a>
+                </div>
+              </div>
+              <div>
+                <div style={{ fontWeight: "600", color: "white", marginBottom: "16px" }}>Product</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <Link href="#features" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Features</Link>
+                  <Link href="#pricing" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Pricing</Link>
+                  <Link href="#testimonials" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Reviews</Link>
+                </div>
+              </div>
+              <div>
+                <div style={{ fontWeight: "600", color: "white", marginBottom: "16px" }}>Company</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <Link href="/about" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>About</Link>
+                  <Link href="/supplier" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>For Suppliers</Link>
+                  <Link href="/contact" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Contact</Link>
+                </div>
+              </div>
+              <div>
+                <div style={{ fontWeight: "600", color: "white", marginBottom: "16px" }}>Legal</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <Link href="/terms" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Terms & Conditions</Link>
+                  <Link href="/privacy" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Privacy Policy</Link>
+                  <Link href="/terms/buyer" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Buyer Terms</Link>
+                  <Link href="/terms/supplier" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Supplier Terms</Link>
+                </div>
+              </div>
+              <div>
+                <div style={{ fontWeight: "600", color: "white", marginBottom: "16px" }}>Support</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <Link href="/help" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Help Center</Link>
+                  <Link href="/faq" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>FAQ</Link>
+                </div>
               </div>
             </div>
-            <div>
-              <div style={{ fontWeight: "600", color: "white", marginBottom: "16px" }}>Product</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <Link href="#features" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Features</Link>
-                <Link href="#pricing" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Pricing</Link>
-                <Link href="#testimonials" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Reviews</Link>
-              </div>
+            <div style={{ borderTop: "1px solid #1e293b", paddingTop: "24px", textAlign: "center", color: "#64748b", fontSize: "14px" }}>
+              © 2025 ChidiyaAI. All rights reserved. Made with ❤️ in India
             </div>
-            <div>
-              <div style={{ fontWeight: "600", color: "white", marginBottom: "16px" }}>Company</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <Link href="/about" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>About</Link>
-                <Link href="/blog" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Blog</Link>
-                <Link href="/contact" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Contact</Link>
-              </div>
-            </div>
-            <div>
-              <div style={{ fontWeight: "600", color: "white", marginBottom: "16px" }}>Legal</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <Link href="/privacy" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Privacy</Link>
-                <Link href="/terms" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Terms</Link>
-              </div>
-            </div>
-            <div>
-              <div style={{ fontWeight: "600", color: "white", marginBottom: "16px" }}>Support</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <Link href="/help" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>Help Center</Link>
-                <Link href="/faq" style={{ color: "#64748b", textDecoration: "none", fontSize: "14px" }}>FAQ</Link>
-              </div>
-            </div>
-          </div>
-          <div style={{ borderTop: "1px solid #1e293b", paddingTop: "24px", textAlign: "center", color: "#64748b", fontSize: "14px" }}>
-            © 2025 ChidiyaAI. All rights reserved. Made with ❤️ in India
           </div>
         </div>
+        {/* ChidiyaAI Marquee - Continuous, Faster, Same BG as footer */}
+        <div style={{ backgroundColor: "#0f172a", padding: "20px 0", overflow: "hidden", borderTop: "1px solid #1e293b" }}>
+          <div className="marquee-track">
+            <div className="marquee-content">
+              {[...Array(20)].map((_, i) => (
+                <span key={i} style={{ color: "white", fontWeight: "800", fontSize: isMobile ? "60px" : "100px", marginRight: "100px", textTransform: "uppercase", letterSpacing: "0.02em", whiteSpace: "nowrap" }}>
+                  Chidiya AI
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+        <style>{`
+          .marquee-track {
+            display: flex;
+            width: 100%;
+          }
+          .marquee-content {
+            display: flex;
+            animation: marquee-scroll 16s linear infinite;
+            will-change: transform;
+          }
+          @keyframes marquee-scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+        `}</style>
       </footer>
       {/* Subscription Options Modal */}
       {showSubOptions && (

@@ -1,20 +1,6 @@
 "use client";
 
-import { useState } from "react";
-
-// Mock data
-const mockLogs = [
-    { id: 1, type: "approval", action: "Supplier Approved", details: "Approved supplier: Premium Textile Corp", user: "Admin User", timestamp: "2024-01-13 14:32:15", ip: "192.168.1.xxx" },
-    { id: 2, type: "suspension", action: "Supplier Suspended", details: "Suspended supplier: Fake Corp Industries - Reason: Fraudulent documents", user: "Admin User", timestamp: "2024-01-13 14:28:00", ip: "192.168.1.xxx" },
-    { id: 3, type: "badge", action: "Badge Awarded", details: "Awarded 'Premium' badge to Quality Fabrics Ltd", user: "Admin User", timestamp: "2024-01-13 13:45:22", ip: "192.168.1.xxx" },
-    { id: 4, type: "buyer_action", action: "Buyer Warned", details: "Warned buyer: Suspicious User - Reason: Multiple identical inquiries", user: "Admin User", timestamp: "2024-01-13 12:15:00", ip: "192.168.1.xxx" },
-    { id: 5, type: "buyer_action", action: "Buyer Restricted", details: "Restricted buyer: Bot Account - Reason: Automated behavior", user: "Admin User", timestamp: "2024-01-13 11:00:00", ip: "192.168.1.xxx" },
-    { id: 6, type: "category", action: "Category Created", details: "Created new category: Industrial Equipment", user: "Admin User", timestamp: "2024-01-13 10:30:00", ip: "192.168.1.xxx" },
-    { id: 7, type: "login", action: "Admin Login", details: "Admin User logged in from new device", user: "Admin User", timestamp: "2024-01-13 09:00:00", ip: "192.168.1.xxx" },
-    { id: 8, type: "inquiry", action: "Inquiry Flagged", details: "AI flagged inquiry #4521 as potential spam", user: "System", timestamp: "2024-01-12 23:45:00", ip: "N/A" },
-    { id: 9, type: "approval", action: "Supplier Rejected", details: "Rejected supplier: Scam Corp - Invalid GST", user: "Admin User", timestamp: "2024-01-12 16:20:00", ip: "192.168.1.xxx" },
-    { id: 10, type: "badge", action: "Badge Removed", details: "Removed 'Trusted' badge from XYZ Traders", user: "Admin User", timestamp: "2024-01-12 14:00:00", ip: "192.168.1.xxx" },
-];
+import { useState, useEffect } from "react";
 
 const logTypes = [
     { id: "all", label: "All Actions" },
@@ -28,17 +14,42 @@ const logTypes = [
 ];
 
 export default function AuditLogsPage() {
-    const [logs] = useState(mockLogs);
+    const [logs, setLogs] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [filterType, setFilterType] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
+    const [exporting, setExporting] = useState(false);
 
-    const getFilteredLogs = () => {
-        return logs.filter(log => {
-            const matchesType = filterType === "all" || log.type === filterType;
-            const matchesSearch = log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                log.details.toLowerCase().includes(searchTerm.toLowerCase());
-            return matchesType && matchesSearch;
-        });
+    useEffect(() => {
+        fetchLogs();
+    }, [filterType, searchTerm, page]);
+
+    const fetchLogs = async () => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams({
+                type: filterType,
+                search: searchTerm,
+                page: page.toString(),
+                limit: "50"
+            });
+
+            const res = await fetch(`/api/admin/logs?${params}`);
+            const data = await res.json();
+
+            if (res.ok) {
+                setLogs(data.logs || []);
+                setTotalPages(data.totalPages || 1);
+                setTotal(data.total || 0);
+            }
+        } catch (error) {
+            console.error("Failed to fetch logs", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const getTypeColor = (type) => {
@@ -67,9 +78,110 @@ export default function AuditLogsPage() {
         }
     };
 
-    const handleExport = () => {
-        alert("Export functionality would download logs as CSV/Excel. (UI only)");
+    const formatDate = (timestamp) => {
+        const date = new Date(timestamp);
+        return date.toLocaleString("en-IN", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+        });
     };
+
+    const handleExport = async () => {
+        setExporting(true);
+        try {
+            const res = await fetch("/api/admin/logs", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ type: filterType, search: searchTerm })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.logs) {
+                // Generate PDF content
+                const content = generatePDFContent(data.logs);
+                downloadAsPDF(content, `audit_logs_${new Date().toISOString().split('T')[0]}.html`);
+            }
+        } catch (error) {
+            console.error("Export failed", error);
+            alert("Failed to export logs");
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    const generatePDFContent = (exportLogs) => {
+        const rows = exportLogs.map(log => `
+            <tr>
+                <td style="padding: 8px; border: 1px solid #ddd; font-size: 10px;">${log.id.slice(0, 8)}...</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${log.action}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${log.details}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${log.user}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${formatDate(log.timestamp)}</td>
+            </tr>
+        `).join("");
+
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>ChidiyaAI Audit Logs</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    h1 { color: #1e293b; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th { background: #1e293b; color: white; padding: 12px 8px; text-align: left; }
+                    tr:nth-child(even) { background: #f8fafc; }
+                    .meta { color: #64748b; margin-bottom: 20px; }
+                </style>
+            </head>
+            <body>
+                <h1>🔐 ChidiyaAI Audit Logs</h1>
+                <div class="meta">
+                    <p>Exported: ${new Date().toLocaleString()}</p>
+                    <p>Total Records: ${exportLogs.length}</p>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Log ID</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                            <th>User</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </body>
+            </html>
+        `;
+    };
+
+    const downloadAsPDF = (content, filename) => {
+        // For now, download as HTML that can be printed as PDF
+        const blob = new Blob([content], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const stats = [
+        { label: "Total Logs", value: total, color: "#3b82f6" },
+        { label: "This Page", value: logs.length, color: "#22c55e" },
+        { label: "Approvals", value: logs.filter(l => l.type === "approval").length, color: "#f59e0b" },
+        { label: "Suspensions", value: logs.filter(l => l.type === "suspension").length, color: "#ef4444" },
+    ];
 
     return (
         <div>
@@ -78,23 +190,27 @@ export default function AuditLogsPage() {
                 <div>
                     <h1 className="admin-title">Audit Logs</h1>
                     <p style={{ color: "#64748b", fontSize: "14px" }}>
-                        Complete activity history of all admin actions
+                        Real-time activity history of all admin actions
                     </p>
                 </div>
-                <button onClick={handleExport} style={{
-                    padding: "12px 24px",
-                    backgroundColor: "#334155",
-                    color: "white",
-                    border: "1px solid #475569",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px"
-                }}>
-                    📥 Export Logs
+                <button
+                    onClick={handleExport}
+                    disabled={exporting}
+                    style={{
+                        padding: "12px 24px",
+                        backgroundColor: exporting ? "#1e293b" : "#334155",
+                        color: "white",
+                        border: "1px solid #475569",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        fontWeight: "500",
+                        cursor: exporting ? "not-allowed" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px"
+                    }}
+                >
+                    {exporting ? "⏳ Exporting..." : "📥 Export Logs"}
                 </button>
             </div>
 
@@ -112,7 +228,7 @@ export default function AuditLogsPage() {
                         <input
                             type="text"
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                             placeholder="Search logs..."
                             style={{
                                 width: "100%",
@@ -131,7 +247,7 @@ export default function AuditLogsPage() {
                     {/* Type Filter */}
                     <select
                         value={filterType}
-                        onChange={(e) => setFilterType(e.target.value)}
+                        onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
                         style={{
                             padding: "12px 16px",
                             backgroundColor: "#0f172a",
@@ -152,12 +268,7 @@ export default function AuditLogsPage() {
 
             {/* Stats */}
             <div className="admin-stats-grid" style={{ marginBottom: "24px" }}>
-                {[
-                    { label: "Total Logs", value: logs.length, color: "#3b82f6" },
-                    { label: "Today", value: logs.filter(l => l.timestamp.includes("2024-01-13")).length, color: "#22c55e" },
-                    { label: "Approvals", value: logs.filter(l => l.type === "approval").length, color: "#f59e0b" },
-                    { label: "Suspensions", value: logs.filter(l => l.type === "suspension").length, color: "#ef4444" },
-                ].map((stat, i) => (
+                {stats.map((stat, i) => (
                     <div key={i} style={{
                         backgroundColor: "#1e293b",
                         padding: "16px",
@@ -170,114 +281,141 @@ export default function AuditLogsPage() {
                 ))}
             </div>
 
-            {/* Logs List */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {getFilteredLogs().length === 0 ? (
-                    <div style={{
-                        backgroundColor: "#1e293b",
-                        borderRadius: "12px",
-                        padding: "48px",
-                        textAlign: "center",
-                        color: "#64748b"
-                    }}>
-                        No logs found matching your criteria
-                    </div>
-                ) : (
-                    getFilteredLogs().map((log) => (
-                        <div key={log.id} style={{
-                            backgroundColor: "#1e293b",
-                            borderRadius: "10px",
-                            border: "1px solid #334155",
-                            borderLeft: `4px solid ${getTypeColor(log.type)}`,
-                            padding: "14px"
-                        }}>
-                            <div className="admin-row">
-                                <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", flex: 1 }}>
-                                    <span style={{
-                                        width: "36px",
-                                        height: "36px",
-                                        borderRadius: "8px",
-                                        backgroundColor: `${getTypeColor(log.type)}20`,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        fontSize: "16px",
-                                        flexShrink: 0
-                                    }}>
-                                        {getTypeIcon(log.type)}
-                                    </span>
-                                    <div>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                            <span style={{ color: "white", fontSize: "15px", fontWeight: "500" }}>
-                                                {log.action}
-                                            </span>
+            {/* Loading */}
+            {loading ? (
+                <div style={{
+                    backgroundColor: "#1e293b",
+                    borderRadius: "12px",
+                    padding: "48px",
+                    textAlign: "center",
+                    color: "#64748b"
+                }}>
+                    Loading logs...
+                </div>
+            ) : (
+                <>
+                    {/* Logs List */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                        {logs.length === 0 ? (
+                            <div style={{
+                                backgroundColor: "#1e293b",
+                                borderRadius: "12px",
+                                padding: "48px",
+                                textAlign: "center",
+                                color: "#64748b"
+                            }}>
+                                <div style={{ fontSize: "48px", marginBottom: "12px" }}>📭</div>
+                                No logs found matching your criteria
+                            </div>
+                        ) : (
+                            logs.map((log) => (
+                                <div key={log.id} style={{
+                                    backgroundColor: "#1e293b",
+                                    borderRadius: "10px",
+                                    border: "1px solid #334155",
+                                    borderLeft: `4px solid ${getTypeColor(log.type)}`,
+                                    padding: "14px"
+                                }}>
+                                    <div className="admin-row">
+                                        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", flex: 1 }}>
                                             <span style={{
-                                                padding: "2px 6px",
+                                                width: "36px",
+                                                height: "36px",
+                                                borderRadius: "8px",
                                                 backgroundColor: `${getTypeColor(log.type)}20`,
-                                                color: getTypeColor(log.type),
-                                                borderRadius: "6px",
-                                                fontSize: "10px",
-                                                textTransform: "uppercase"
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                fontSize: "16px",
+                                                flexShrink: 0
                                             }}>
-                                                {log.type.replace("_", " ")}
+                                                {getTypeIcon(log.type)}
                                             </span>
+                                            <div>
+                                                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                                                    <span style={{ color: "white", fontSize: "15px", fontWeight: "500" }}>
+                                                        {log.action}
+                                                    </span>
+                                                    <span style={{
+                                                        padding: "2px 6px",
+                                                        backgroundColor: `${getTypeColor(log.type)}20`,
+                                                        color: getTypeColor(log.type),
+                                                        borderRadius: "6px",
+                                                        fontSize: "10px",
+                                                        textTransform: "uppercase"
+                                                    }}>
+                                                        {log.type.replace("_", " ")}
+                                                    </span>
+                                                </div>
+                                                <div style={{ color: "#94a3b8", fontSize: "13px", marginTop: "4px" }}>
+                                                    {log.details}
+                                                </div>
+                                                <div style={{ color: "#475569", fontSize: "11px", marginTop: "4px" }}>
+                                                    ID: {log.id.slice(0, 8)}...
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div style={{ color: "#94a3b8", fontSize: "13px", marginTop: "4px" }}>
-                                            {log.details}
+                                        <div style={{ minWidth: "120px", textAlign: "right" }}>
+                                            <div style={{ color: "#64748b", fontSize: "12px" }}>{formatDate(log.timestamp)}</div>
+                                            <div style={{ color: "#475569", fontSize: "11px" }}>by {log.user}</div>
                                         </div>
                                     </div>
                                 </div>
-                                <div style={{ minWidth: "120px" }}>
-                                    <div style={{ color: "#64748b", fontSize: "12px" }}>{log.timestamp}</div>
-                                    <div style={{ color: "#475569", fontSize: "11px" }}>by {log.user}</div>
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
+                            ))
+                        )}
+                    </div>
 
-            {/* Pagination Info */}
-            <div style={{
-                marginTop: "24px",
-                padding: "16px",
-                backgroundColor: "#1e293b",
-                borderRadius: "10px",
-                border: "1px solid #334155",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: "12px"
-            }}>
-                <span style={{ color: "#64748b", fontSize: "14px" }}>
-                    Showing {getFilteredLogs().length} of {logs.length} logs
-                </span>
-                <div style={{ display: "flex", gap: "8px" }}>
-                    <button style={{
-                        padding: "8px 16px",
-                        backgroundColor: "#334155",
-                        color: "#94a3b8",
-                        border: "none",
-                        borderRadius: "6px",
-                        fontSize: "13px",
-                        cursor: "pointer"
+                    {/* Pagination */}
+                    <div style={{
+                        marginTop: "24px",
+                        padding: "16px",
+                        backgroundColor: "#1e293b",
+                        borderRadius: "10px",
+                        border: "1px solid #334155",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: "12px"
                     }}>
-                        ← Previous
-                    </button>
-                    <button style={{
-                        padding: "8px 16px",
-                        backgroundColor: "#334155",
-                        color: "#94a3b8",
-                        border: "none",
-                        borderRadius: "6px",
-                        fontSize: "13px",
-                        cursor: "pointer"
-                    }}>
-                        Next →
-                    </button>
-                </div>
-            </div>
+                        <span style={{ color: "#64748b", fontSize: "14px" }}>
+                            Page {page} of {totalPages} ({total} total logs)
+                        </span>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                style={{
+                                    padding: "8px 16px",
+                                    backgroundColor: page === 1 ? "#1e293b" : "#334155",
+                                    color: page === 1 ? "#475569" : "#94a3b8",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    fontSize: "13px",
+                                    cursor: page === 1 ? "not-allowed" : "pointer"
+                                }}
+                            >
+                                ← Previous
+                            </button>
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                                style={{
+                                    padding: "8px 16px",
+                                    backgroundColor: page === totalPages ? "#1e293b" : "#334155",
+                                    color: page === totalPages ? "#475569" : "#94a3b8",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    fontSize: "13px",
+                                    cursor: page === totalPages ? "not-allowed" : "pointer"
+                                }}
+                            >
+                                Next →
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 }

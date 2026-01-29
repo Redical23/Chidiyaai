@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 
 export default function Navbar() {
@@ -18,15 +19,15 @@ export default function Navbar() {
             <div className="max-w-6xl mx-auto px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
-                    <Link href="/" className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                        </div>
-                        <span className="text-lg font-bold text-slate-900">
-                            Chidiya<span className="text-blue-500">AI</span>
-                        </span>
+                    <Link href="/" className="flex items-center">
+                        <Image
+                            src="/assests/chidiyaailogo.png"
+                            alt="ChidiyaAI"
+                            width={200}
+                            height={100}
+                            className="h-[100px] w-auto"
+                            priority
+                        />
                     </Link>
 
                     {/* Desktop Nav */}
