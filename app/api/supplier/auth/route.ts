@@ -17,11 +17,17 @@ export async function POST(req: Request) {
                 email,
                 phone,
                 password,
+                location,
+                categoryId,
+                categoryDescription,
+                // Legacy fields (for backward compatibility)
                 productCategories,
                 capacity,
                 moq,
                 serviceLocations,
             } = data;
+
+            console.log("Registration attempt for:", email);
 
             const existing = await prisma.supplier.findUnique({
                 where: { email },
@@ -36,42 +42,76 @@ export async function POST(req: Request) {
             }
 
             const hashedPassword = await bcrypt.hash(password, 10);
+            console.log("Password hashed");
 
             // Generate OTP for email verification
             const otp = generateOTP();
             const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+            console.log("OTP generated");
 
-            const supplier = await prisma.supplier.create({
-                data: {
-                    companyName,
-                    email,
-                    phone,
-                    password: hashedPassword,
-                    productCategories,
-                    capacity,
-                    moq,
-                    serviceLocations,
-                    status: "pending",
-                    emailVerified: false,
-                    verificationOTP: otp,
-                    otpExpiry
-                },
-                select: {
-                    id: true,
-                },
-            });
+            // Create supplier with simplified fields
+            let supplier;
+            try {
+                supplier = await prisma.supplier.create({
+                    data: {
+                        companyName,
+                        email,
+                        phone,
+                        password: hashedPassword,
+                        // New simplified field
+                        serviceLocations: location || serviceLocations || "",
+                        // Legacy fields (for backward compatibility)
+                        productCategories: Array.isArray(productCategories) ? productCategories : [],
+                        capacity: capacity || null,
+                        moq: moq || null,
+                        description: categoryDescription || "",
+                        status: "pending",
+                        emailVerified: false,
+                        verificationOTP: otp,
+                        otpExpiry
+                    },
+                    select: {
+                        id: true,
+                    },
+                });
+                console.log("Supplier created:", supplier.id);
+            } catch (createErr) {
+                console.error("Error creating supplier:", createErr);
+                return NextResponse.json(
+                    { error: "Failed to create supplier account" },
+                    { status: 500 }
+                );
+            }
 
-            // Send OTP email for verification
-            await sendOTPEmail(email, otp, companyName);
+            // If a category was selected, create a SupplierCategory record
+            if (categoryId) {
+                try {
+                    await prisma.supplierCategory.create({
+                        data: {
+                            supplierId: supplier.id,
+                            categoryTemplateId: categoryId,
+                            customDescription: categoryDescription || "",
+                            status: "approved",
+                            isPrimary: true,
+                        }
+                    });
+                    console.log("SupplierCategory created");
+                } catch (catError) {
+                    console.error("Error creating supplier category:", catError);
+                }
+            }
 
-            // Send welcome email (non-blocking)
-            sendSupplierWelcomeEmail(email, companyName).catch(console.error);
+            // Send emails (non-blocking)
+            sendOTPEmail(email, otp, companyName).catch(e => console.error("OTP Email Error:", e));
+            sendSupplierWelcomeEmail(email, companyName).catch(e => console.error("Welcome Email Error:", e));
+            console.log("Emails queued");
 
             const token = jwt.sign(
                 { id: supplier.id, type: "supplier" },
                 JWT_SECRET,
                 { expiresIn: "7d" }
             );
+            console.log("Token generated");
 
             const response = NextResponse.json({
                 success: true,
@@ -86,6 +126,7 @@ export async function POST(req: Request) {
                 path: "/",
             });
 
+            console.log("Registration successful for:", email);
             return response;
         }
 

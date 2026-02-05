@@ -1,6 +1,14 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization to avoid crash when API key is missing
+let resend: Resend | null = null;
+
+function getResend(): Resend | null {
+    if (!resend && process.env.RESEND_API_KEY) {
+        resend = new Resend(process.env.RESEND_API_KEY);
+    }
+    return resend;
+}
 
 const FROM_EMAIL = process.env.EMAIL_FROM || 'ChidiyaAI <noreply@chidiyaai.com>';
 const BASE_URL = process.env.NEXTAUTH_URL || 'https://chidiyaai.com';
@@ -11,7 +19,12 @@ const BASE_URL = process.env.NEXTAUTH_URL || 'https://chidiyaai.com';
 
 export async function sendBuyerWelcomeEmail(email: string, name: string) {
     try {
-        const { data, error } = await resend.emails.send({
+        const client = getResend();
+        if (!client) {
+            console.warn('Resend API key not configured, skipping email');
+            return { success: false, error: 'Email not configured' };
+        }
+        const { data, error } = await client.emails.send({
             from: FROM_EMAIL,
             to: email,
             subject: 'Welcome to ChidiyaAI! 🎉',
@@ -52,7 +65,12 @@ export async function sendBuyerWelcomeEmail(email: string, name: string) {
 
 export async function sendSupplierWelcomeEmail(email: string, companyName: string) {
     try {
-        const { data, error } = await resend.emails.send({
+        const client = getResend();
+        if (!client) {
+            console.warn('Resend API key not configured, skipping email');
+            return { success: false, error: 'Email not configured' };
+        }
+        const { data, error } = await client.emails.send({
             from: FROM_EMAIL,
             to: email,
             subject: 'Welcome to ChidiyaAI Seller Platform! 🚀',
@@ -98,7 +116,12 @@ export async function sendPasswordResetEmail(email: string, resetToken: string, 
     const resetLink = `${BASE_URL}/${userType === 'supplier' ? 'supplier/' : ''}reset-password?token=${resetToken}`;
 
     try {
-        const { data, error } = await resend.emails.send({
+        const client = getResend();
+        if (!client) {
+            console.warn('Resend API key not configured, skipping email');
+            return { success: false, error: 'Email not configured' };
+        }
+        const { data, error } = await client.emails.send({
             from: FROM_EMAIL,
             to: email,
             subject: 'Reset Your ChidiyaAI Password',
@@ -133,7 +156,12 @@ export async function sendPasswordResetEmail(email: string, resetToken: string, 
 
 export async function sendPasswordChangedEmail(email: string, name: string) {
     try {
-        const { data, error } = await resend.emails.send({
+        const client = getResend();
+        if (!client) {
+            console.warn('Resend API key not configured, skipping email');
+            return { success: false, error: 'Email not configured' };
+        }
+        const { data, error } = await client.emails.send({
             from: FROM_EMAIL,
             to: email,
             subject: 'Your ChidiyaAI Password Has Been Changed',
@@ -168,7 +196,12 @@ export async function sendPasswordChangedEmail(email: string, name: string) {
 
 export async function sendOTPEmail(email: string, otp: string, name?: string) {
     try {
-        const { data, error } = await resend.emails.send({
+        const client = getResend();
+        if (!client) {
+            console.warn('Resend API key not configured, skipping email');
+            return { success: false, error: 'Email not configured' };
+        }
+        const { data, error } = await client.emails.send({
             from: FROM_EMAIL,
             to: email,
             subject: 'Verify Your Email - ChidiyaAI',
@@ -260,7 +293,12 @@ export async function sendAdminActionEmail(
     const actionConfig = actionMessages[action];
 
     try {
-        const { data, error } = await resend.emails.send({
+        const client = getResend();
+        if (!client) {
+            console.warn('Resend API key not configured, skipping email');
+            return { success: false, error: 'Email not configured' };
+        }
+        const { data, error } = await client.emails.send({
             from: FROM_EMAIL,
             to: email,
             subject: actionConfig.subject,
@@ -334,7 +372,12 @@ export async function sendSupplierCardEmail(
     `).join('');
 
     try {
-        const { data, error } = await resend.emails.send({
+        const client = getResend();
+        if (!client) {
+            console.warn('Resend API key not configured, skipping email');
+            return { success: false, error: 'Email not configured' };
+        }
+        const { data, error } = await client.emails.send({
             from: FROM_EMAIL,
             to: email,
             subject: `Your Packaging Suppliers - ChidiyaAI Match Results`,

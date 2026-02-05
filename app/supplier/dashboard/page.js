@@ -86,7 +86,6 @@ export default function SupplierDashboard() {
     const [productSaving, setProductSaving] = useState(false);
     const [productImagePreviews, setProductImagePreviews] = useState([]);
 
-    // Product form options
     const categoryOptions = [
         "Corrugated Boxes",
         "Paper Cups",
@@ -103,6 +102,31 @@ export default function SupplierDashboard() {
     const strengthOptions = ["Light", "Medium", "Heavy"];
     const priceUnitOptions = ["piece", "box", "meter", "kg", "pack"];
     const leadTimeOptions = ["3-5 days", "7-10 days", "15-20 days", "Custom"];
+
+    // Products/Categories State
+    const [productCategorySubTab, setProductCategorySubTab] = useState("addProduct");
+    const [supplierCategories, setSupplierCategories] = useState([]);
+    const [categoryTemplates, setCategoryTemplates] = useState([]);
+    const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+    const [categoryForm, setCategoryForm] = useState({ categoryId: "", description: "" });
+    const [categorySaving, setCategorySaving] = useState(false);
+
+    // Add Product Form State (new enhanced version)
+    const [addProductStep, setAddProductStep] = useState(1);
+    const [selectedCategoryForProduct, setSelectedCategoryForProduct] = useState(null);
+    const [addProductForm, setAddProductForm] = useState({
+        name: "",
+        description: "",
+        price: "",
+        priceUnit: "Piece",
+        supplierCategoryId: "",
+        categoryTemplateId: "",
+        images: [],
+        specifications: {},
+        otherSpecs: {},  // For "Other" text inputs
+        additionalInfo: "" // Free text for local names, etc.
+    });
+    const [addProductImages, setAddProductImages] = useState([]);
 
     useEffect(() => {
         fetchDashboardData();
@@ -129,10 +153,88 @@ export default function SupplierDashboard() {
                 setSupplierProfile(data.supplier || {});
                 setProducts(data.products || []);
             }
+
+            // Fetch category templates
+            fetchCategoryTemplates();
+            // Fetch supplier categories
+            fetchSupplierCategories();
         } catch (error) {
             console.error("Failed to fetch dashboard", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchCategoryTemplates = async () => {
+        try {
+            const res = await fetch("/api/categories/templates");
+            const data = await res.json();
+            if (res.ok) {
+                setCategoryTemplates(data.categories || []);
+            }
+        } catch (error) {
+            console.error("Failed to fetch category templates", error);
+        }
+    };
+
+    const fetchSupplierCategories = async () => {
+        try {
+            const res = await fetch("/api/supplier/categories");
+            const data = await res.json();
+            if (res.ok) {
+                setSupplierCategories(data.categories || []);
+            }
+        } catch (error) {
+            console.error("Failed to fetch supplier categories", error);
+        }
+    };
+
+    const handleRequestCategory = async () => {
+        if (!categoryForm.categoryId) {
+            showNotification("Please select a category", "error");
+            return;
+        }
+        setCategorySaving(true);
+        try {
+            const res = await fetch("/api/supplier/categories", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    categoryTemplateId: categoryForm.categoryId,
+                    description: categoryForm.description
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showNotification("Category requested successfully!", "success");
+                setShowAddCategoryModal(false);
+                setCategoryForm({ categoryId: "", description: "" });
+                fetchSupplierCategories();
+            } else {
+                showNotification(data.error || "Failed to request category", "error");
+            }
+        } catch (error) {
+            showNotification("Failed to request category", "error");
+        } finally {
+            setCategorySaving(false);
+        }
+    };
+
+    const handleDeleteCategory = async (categoryId) => {
+        if (!confirm("Are you sure you want to delete this category?")) return;
+        try {
+            const res = await fetch(`/api/supplier/categories?id=${categoryId}`, {
+                method: "DELETE"
+            });
+            if (res.ok) {
+                showNotification("Category deleted!", "success");
+                fetchSupplierCategories();
+            } else {
+                const data = await res.json();
+                showNotification(data.error || "Failed to delete", "error");
+            }
+        } catch (error) {
+            showNotification("Failed to delete category", "error");
         }
     };
 
@@ -458,7 +560,6 @@ export default function SupplierDashboard() {
                             { id: "quotes", label: "My Quotes", icon: "📝" },
                             { id: "analytics", label: "Analytics", icon: "📊" },
                             { id: "profile", label: "Company Profile", icon: "🏢" },
-                            { id: "products", label: "Products", icon: "📦" },
                         ].map((item) => (
                             <button
                                 key={item.id}
@@ -481,6 +582,27 @@ export default function SupplierDashboard() {
                                 {item.label}
                             </button>
                         ))}
+
+                        {/* Products/Categories Tab */}
+                        <button
+                            onClick={() => setActiveTab("productsCat")}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "12px",
+                                padding: "12px 16px",
+                                backgroundColor: activeTab === "productsCat" ? "#1e293b" : "transparent",
+                                border: "none",
+                                borderRadius: "8px",
+                                color: activeTab === "productsCat" ? "white" : "#94a3b8",
+                                fontSize: "14px",
+                                cursor: "pointer",
+                                textAlign: "left"
+                            }}
+                        >
+                            <span>📦</span>
+                            Products/Categories
+                        </button>
                     </nav>
 
                     {/* Badges */}
@@ -563,6 +685,7 @@ export default function SupplierDashboard() {
                             { id: "quotes", label: "Quotes" },
                             { id: "analytics", label: "Stats" },
                             { id: "profile", label: "Profile" },
+                            { id: "productsCat", label: "Products" },
                         ].map((item) => (
                             <button
                                 key={item.id}
@@ -1081,140 +1204,799 @@ export default function SupplierDashboard() {
                     </div>
                 )}
 
-                {/* Products Tab */}
-                {activeTab === "products" && (
+                {/* Products/Categories Tab */}
+                {activeTab === "productsCat" && (
                     <div>
-                        {/* Header with Add Button */}
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-                            <div>
-                                <h2 style={{ fontSize: isMobile ? "18px" : "20px", fontWeight: "600", color: "#0f172a", marginBottom: "4px" }}>Your Products</h2>
-                                <p style={{ fontSize: "13px", color: "#64748b" }}>Manage products that buyers can see</p>
-                            </div>
-                            <button
-                                onClick={() => setShowAddProductModal(true)}
-                                style={{
-                                    padding: "12px 24px",
-                                    backgroundColor: "#0f172a",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "8px",
-                                    fontSize: "14px",
-                                    fontWeight: "500",
-                                    cursor: "pointer",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "8px"
-                                }}
-                            >
-                                ➕ Add Product
-                            </button>
+                        {/* Sub-Navigation */}
+                        <div style={{
+                            display: "flex",
+                            gap: "8px",
+                            marginBottom: "24px",
+                            flexWrap: "wrap",
+                            backgroundColor: "white",
+                            padding: "12px",
+                            borderRadius: "12px",
+                            border: "1px solid #e2e8f0"
+                        }}>
+                            {[
+                                { id: "addProduct", label: "➕ Add Product" },
+                                { id: "manageProducts", label: "📦 Manage Products" },
+                                { id: "addCategory", label: "📂 Add Category" },
+                                { id: "manageCategories", label: "⚙️ Manage Categories" },
+                            ].map((item) => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setProductCategorySubTab(item.id)}
+                                    style={{
+                                        padding: "10px 16px",
+                                        backgroundColor: productCategorySubTab === item.id ? "#0f172a" : "#f1f5f9",
+                                        color: productCategorySubTab === item.id ? "white" : "#0f172a",
+                                        border: "none",
+                                        borderRadius: "8px",
+                                        fontSize: "13px",
+                                        fontWeight: "500",
+                                        cursor: "pointer"
+                                    }}
+                                >
+                                    {item.label}
+                                </button>
+                            ))}
                         </div>
 
-                        {/* Products Grid */}
-                        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: "20px" }}>
-                            {products.length === 0 ? (
-                                <div style={{
-                                    gridColumn: "1 / -1",
-                                    backgroundColor: "white",
-                                    padding: "60px 40px",
-                                    borderRadius: "16px",
-                                    border: "2px dashed #e2e8f0",
-                                    textAlign: "center"
-                                }}>
-                                    <div style={{ fontSize: "48px", marginBottom: "16px" }}>📦</div>
-                                    <h3 style={{ fontSize: "18px", fontWeight: "600", color: "#0f172a", marginBottom: "8px" }}>No Products Yet</h3>
-                                    <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "20px" }}>Add your first product to showcase to buyers</p>
+                        {/* Add Product Sub-Tab */}
+                        {productCategorySubTab === "addProduct" && (
+                            <div style={{ backgroundColor: "white", padding: "24px", borderRadius: "16px", border: "1px solid #e2e8f0" }}>
+                                <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#0f172a", marginBottom: "20px" }}>
+                                    Add New Product
+                                </h2>
+
+                                {/* Step Indicator */}
+                                <div style={{ display: "flex", gap: "16px", marginBottom: "24px" }}>
+                                    <div style={{
+                                        padding: "8px 16px",
+                                        backgroundColor: addProductStep === 1 ? "#0f172a" : "#e2e8f0",
+                                        color: addProductStep === 1 ? "white" : "#64748b",
+                                        borderRadius: "20px",
+                                        fontSize: "13px",
+                                        fontWeight: "500"
+                                    }}>1. Basic Details</div>
+                                    <div style={{
+                                        padding: "8px 16px",
+                                        backgroundColor: addProductStep === 2 ? "#0f172a" : "#e2e8f0",
+                                        color: addProductStep === 2 ? "white" : "#64748b",
+                                        borderRadius: "20px",
+                                        fontSize: "13px",
+                                        fontWeight: "500"
+                                    }}>2. Specifications</div>
+                                </div>
+
+                                {/* Step 1: Basic Details */}
+                                {addProductStep === 1 && (
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                                        {/* Category Selection */}
+                                        <div>
+                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "8px" }}>
+                                                Select Category *
+                                            </label>
+                                            <select
+                                                value={addProductForm.supplierCategoryId}
+                                                onChange={(e) => {
+                                                    const cat = supplierCategories.find(c => c.id === e.target.value);
+                                                    setAddProductForm({
+                                                        ...addProductForm,
+                                                        supplierCategoryId: e.target.value,
+                                                        categoryTemplateId: cat?.categoryTemplateId || ""
+                                                    });
+                                                    setSelectedCategoryForProduct(cat?.categoryTemplate || null);
+                                                }}
+                                                style={{
+                                                    width: "100%",
+                                                    padding: "12px",
+                                                    border: "1px solid #e2e8f0",
+                                                    borderRadius: "8px",
+                                                    fontSize: "14px",
+                                                    color: "#0f172a"
+                                                }}
+                                            >
+                                                <option value="">Choose a category...</option>
+                                                {supplierCategories.filter(c => c.status === "approved").map((cat) => (
+                                                    <option key={cat.id} value={cat.id}>
+                                                        {cat.categoryTemplate?.name || "Unknown"}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {supplierCategories.filter(c => c.status === "approved").length === 0 && (
+                                                <p style={{ fontSize: "12px", color: "#f59e0b", marginTop: "8px" }}>
+                                                    ⚠️ No approved categories. Add a category first!
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "8px" }}>
+                                                Product Name *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={addProductForm.name}
+                                                onChange={(e) => setAddProductForm({ ...addProductForm, name: e.target.value })}
+                                                placeholder="e.g., 3 Ply Corrugated Box"
+                                                style={{
+                                                    width: "100%",
+                                                    padding: "12px",
+                                                    border: "1px solid #e2e8f0",
+                                                    borderRadius: "8px",
+                                                    fontSize: "14px",
+                                                    color: "#0f172a",
+                                                    backgroundColor: "#ffffff"
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "8px" }}>
+                                                Description *
+                                            </label>
+                                            <textarea
+                                                value={addProductForm.description}
+                                                onChange={(e) => setAddProductForm({ ...addProductForm, description: e.target.value })}
+                                                placeholder="Describe your product, features, materials, etc."
+                                                rows={4}
+                                                style={{
+                                                    width: "100%",
+                                                    padding: "12px",
+                                                    border: "1px solid #e2e8f0",
+                                                    borderRadius: "8px",
+                                                    fontSize: "14px",
+                                                    color: "#0f172a",
+                                                    backgroundColor: "#ffffff",
+                                                    resize: "vertical"
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                                            <div>
+                                                <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "8px" }}>
+                                                    Price *
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={addProductForm.price}
+                                                    onChange={(e) => setAddProductForm({ ...addProductForm, price: e.target.value })}
+                                                    placeholder="e.g., ₹25-50"
+                                                    style={{
+                                                        width: "100%",
+                                                        padding: "12px",
+                                                        border: "1px solid #e2e8f0",
+                                                        borderRadius: "8px",
+                                                        fontSize: "14px",
+                                                        color: "#0f172a",
+                                                        backgroundColor: "#ffffff"
+                                                    }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "8px" }}>
+                                                    Price Unit
+                                                </label>
+                                                <select
+                                                    value={addProductForm.priceUnit}
+                                                    onChange={(e) => setAddProductForm({ ...addProductForm, priceUnit: e.target.value })}
+                                                    style={{
+                                                        width: "100%",
+                                                        padding: "12px",
+                                                        border: "1px solid #e2e8f0",
+                                                        borderRadius: "8px",
+                                                        fontSize: "14px",
+                                                        color: "#0f172a",
+                                                        backgroundColor: "#ffffff"
+                                                    }}
+                                                >
+                                                    <option value="Piece">Per Piece</option>
+                                                    <option value="Box">Per Box</option>
+                                                    <option value="Kg">Per Kg</option>
+                                                    <option value="Meter">Per Meter</option>
+                                                    <option value="Pack">Per Pack</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={() => {
+                                                if (!addProductForm.supplierCategoryId) {
+                                                    showNotification("Please select a category", "error");
+                                                    return;
+                                                }
+                                                if (!addProductForm.name || !addProductForm.description) {
+                                                    showNotification("Please fill in all required fields", "error");
+                                                    return;
+                                                }
+                                                setAddProductStep(2);
+                                            }}
+                                            style={{
+                                                alignSelf: "flex-end",
+                                                padding: "12px 24px",
+                                                backgroundColor: "#3b82f6",
+                                                color: "white",
+                                                border: "none",
+                                                borderRadius: "8px",
+                                                fontSize: "14px",
+                                                fontWeight: "500",
+                                                cursor: "pointer"
+                                            }}
+                                        >
+                                            Next: Specifications →
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Step 2: Specifications */}
+                                {addProductStep === 2 && selectedCategoryForProduct && (
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                                        <button
+                                            onClick={() => setAddProductStep(1)}
+                                            style={{
+                                                alignSelf: "flex-start",
+                                                padding: "8px 16px",
+                                                backgroundColor: "#f1f5f9",
+                                                color: "#0f172a",
+                                                border: "none",
+                                                borderRadius: "6px",
+                                                fontSize: "13px",
+                                                cursor: "pointer"
+                                            }}
+                                        >
+                                            ← Back to Basic Details
+                                        </button>
+
+                                        <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>
+                                            Specifications for {selectedCategoryForProduct.name}
+                                        </h3>
+
+                                        {/* Dynamic Specs from Category Template */}
+                                        {selectedCategoryForProduct.specifications &&
+                                            Object.entries(selectedCategoryForProduct.specifications).map(([specKey, specData]) => (
+                                                <div key={specKey}>
+                                                    <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "8px" }}>
+                                                        {specKey} {specData.required && "*"}
+                                                    </label>
+                                                    {specData.type === "select" ? (
+                                                        <div>
+                                                            <select
+                                                                value={addProductForm.specifications[specKey] || ""}
+                                                                onChange={(e) => setAddProductForm({
+                                                                    ...addProductForm,
+                                                                    specifications: {
+                                                                        ...addProductForm.specifications,
+                                                                        [specKey]: e.target.value
+                                                                    }
+                                                                })}
+                                                                style={{
+                                                                    width: "100%",
+                                                                    padding: "12px",
+                                                                    border: "1px solid #e2e8f0",
+                                                                    borderRadius: "8px",
+                                                                    fontSize: "14px",
+                                                                    color: "#0f172a",
+                                                                    backgroundColor: "#ffffff"
+                                                                }}
+                                                            >
+                                                                <option value="">Select...</option>
+                                                                {specData.options?.map(opt => (
+                                                                    <option key={opt} value={opt}>{opt}</option>
+                                                                ))}
+                                                                <option value="Other">Other (Specify)</option>
+                                                            </select>
+                                                            {addProductForm.specifications[specKey] === "Other" && (
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder={`Specify ${specKey}...`}
+                                                                    value={addProductForm.otherSpecs[specKey] || ""}
+                                                                    onChange={(e) => setAddProductForm({
+                                                                        ...addProductForm,
+                                                                        otherSpecs: {
+                                                                            ...addProductForm.otherSpecs,
+                                                                            [specKey]: e.target.value
+                                                                        }
+                                                                    })}
+                                                                    style={{
+                                                                        width: "100%",
+                                                                        padding: "12px",
+                                                                        border: "1px solid #e2e8f0",
+                                                                        borderRadius: "8px",
+                                                                        fontSize: "14px",
+                                                                        color: "#0f172a",
+                                                                        backgroundColor: "#ffffff",
+                                                                        marginTop: "8px"
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    ) : specData.type === "multiselect" ? (
+                                                        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                                                            {specData.options?.map(opt => (
+                                                                <label key={opt} style={{
+                                                                    display: "flex",
+                                                                    alignItems: "center",
+                                                                    gap: "8px",
+                                                                    padding: "8px 12px",
+                                                                    backgroundColor: (addProductForm.specifications[specKey] || []).includes(opt) ? "#dbeafe" : "#f1f5f9",
+                                                                    borderRadius: "6px",
+                                                                    cursor: "pointer",
+                                                                    fontSize: "13px"
+                                                                }}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={(addProductForm.specifications[specKey] || []).includes(opt)}
+                                                                        onChange={(e) => {
+                                                                            const current = addProductForm.specifications[specKey] || [];
+                                                                            setAddProductForm({
+                                                                                ...addProductForm,
+                                                                                specifications: {
+                                                                                    ...addProductForm.specifications,
+                                                                                    [specKey]: e.target.checked
+                                                                                        ? [...current, opt]
+                                                                                        : current.filter(v => v !== opt)
+                                                                                }
+                                                                            });
+                                                                        }}
+                                                                    />
+                                                                    {opt}
+                                                                </label>
+                                                            ))}
+                                                            <label style={{
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                gap: "8px",
+                                                                padding: "8px 12px",
+                                                                backgroundColor: (addProductForm.specifications[specKey] || []).includes("Other") ? "#dbeafe" : "#f1f5f9",
+                                                                borderRadius: "6px",
+                                                                cursor: "pointer",
+                                                                fontSize: "13px"
+                                                            }}>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={(addProductForm.specifications[specKey] || []).includes("Other")}
+                                                                    onChange={(e) => {
+                                                                        const current = addProductForm.specifications[specKey] || [];
+                                                                        setAddProductForm({
+                                                                            ...addProductForm,
+                                                                            specifications: {
+                                                                                ...addProductForm.specifications,
+                                                                                [specKey]: e.target.checked
+                                                                                    ? [...current, "Other"]
+                                                                                    : current.filter(v => v !== "Other")
+                                                                            }
+                                                                        });
+                                                                    }}
+                                                                />
+                                                                Other
+                                                            </label>
+                                                            {(addProductForm.specifications[specKey] || []).includes("Other") && (
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder={`Specify other ${specKey}...`}
+                                                                    value={addProductForm.otherSpecs[specKey] || ""}
+                                                                    onChange={(e) => setAddProductForm({
+                                                                        ...addProductForm,
+                                                                        otherSpecs: {
+                                                                            ...addProductForm.otherSpecs,
+                                                                            [specKey]: e.target.value
+                                                                        }
+                                                                    })}
+                                                                    style={{
+                                                                        width: "100%",
+                                                                        padding: "12px",
+                                                                        border: "1px solid #e2e8f0",
+                                                                        borderRadius: "8px",
+                                                                        fontSize: "14px",
+                                                                        color: "#0f172a",
+                                                                        backgroundColor: "#ffffff",
+                                                                        marginTop: "8px"
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <input
+                                                            type="text"
+                                                            value={addProductForm.specifications[specKey] || ""}
+                                                            onChange={(e) => setAddProductForm({
+                                                                ...addProductForm,
+                                                                specifications: {
+                                                                    ...addProductForm.specifications,
+                                                                    [specKey]: e.target.value
+                                                                }
+                                                            })}
+                                                            placeholder={`Enter ${specKey}...`}
+                                                            style={{
+                                                                width: "100%",
+                                                                padding: "12px",
+                                                                border: "1px solid #e2e8f0",
+                                                                borderRadius: "8px",
+                                                                fontSize: "14px",
+                                                                color: "#0f172a",
+                                                                backgroundColor: "#ffffff"
+                                                            }}
+                                                        />
+                                                    )}
+                                                </div>
+                                            ))}
+
+                                        {/* Additional Info - Free Text */}
+                                        <div style={{
+                                            backgroundColor: "#f8fafc",
+                                            padding: "16px",
+                                            borderRadius: "12px",
+                                            border: "1px dashed #e2e8f0"
+                                        }}>
+                                            <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "8px" }}>
+                                                💡 Additional Information (Optional)
+                                            </label>
+                                            <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px" }}>
+                                                Add common Indian names, local terms, additional details about your product that buyers might search for.
+                                            </p>
+                                            <textarea
+                                                value={addProductForm.additionalInfo}
+                                                onChange={(e) => setAddProductForm({ ...addProductForm, additionalInfo: e.target.value })}
+                                                placeholder="e.g., Also known as: Packaging Dabba, Karton Box, Brown Box. Available in custom prints..."
+                                                rows={3}
+                                                style={{
+                                                    width: "100%",
+                                                    padding: "12px",
+                                                    border: "1px solid #e2e8f0",
+                                                    borderRadius: "8px",
+                                                    fontSize: "14px",
+                                                    color: "#0f172a",
+                                                    backgroundColor: "#ffffff",
+                                                    resize: "vertical"
+                                                }}
+                                            />
+                                        </div>
+
+                                        <button
+                                            onClick={async () => {
+                                                setProductSaving(true);
+                                                try {
+                                                    const finalSpecs = { ...addProductForm.specifications };
+                                                    Object.entries(addProductForm.otherSpecs).forEach(([key, val]) => {
+                                                        if (val && finalSpecs[key] === "Other") {
+                                                            finalSpecs[key] = val;
+                                                        } else if (val && Array.isArray(finalSpecs[key]) && finalSpecs[key].includes("Other")) {
+                                                            finalSpecs[key] = finalSpecs[key].filter(v => v !== "Other").concat([val]);
+                                                        }
+                                                    });
+                                                    if (addProductForm.additionalInfo) {
+                                                        finalSpecs.additionalInfo = addProductForm.additionalInfo;
+                                                    }
+
+                                                    const res = await fetch("/api/supplier/products", {
+                                                        method: "POST",
+                                                        headers: { "Content-Type": "application/json" },
+                                                        body: JSON.stringify({
+                                                            name: addProductForm.name,
+                                                            description: addProductForm.description,
+                                                            price: addProductForm.price,
+                                                            priceUnit: addProductForm.priceUnit,
+                                                            supplierCategoryId: addProductForm.supplierCategoryId,
+                                                            categoryTemplateId: addProductForm.categoryTemplateId,
+                                                            specifications: finalSpecs,
+                                                            images: addProductForm.images
+                                                        })
+                                                    });
+                                                    const data = await res.json();
+                                                    if (res.ok) {
+                                                        showNotification("Product added successfully!", "success");
+                                                        setAddProductForm({
+                                                            name: "", description: "", price: "", priceUnit: "Piece",
+                                                            supplierCategoryId: "", categoryTemplateId: "",
+                                                            images: [], specifications: {}, otherSpecs: {}, additionalInfo: ""
+                                                        });
+                                                        setAddProductStep(1);
+                                                        setSelectedCategoryForProduct(null);
+                                                        fetchDashboardData();
+                                                    } else {
+                                                        showNotification(data.error || "Failed to add product", "error");
+                                                    }
+                                                } catch (error) {
+                                                    showNotification("Failed to add product", "error");
+                                                } finally {
+                                                    setProductSaving(false);
+                                                }
+                                            }}
+                                            disabled={productSaving}
+                                            style={{
+                                                alignSelf: "flex-end",
+                                                padding: "12px 32px",
+                                                backgroundColor: productSaving ? "#94a3b8" : "#22c55e",
+                                                color: "white",
+                                                border: "none",
+                                                borderRadius: "8px",
+                                                fontSize: "14px",
+                                                fontWeight: "500",
+                                                cursor: productSaving ? "not-allowed" : "pointer"
+                                            }}
+                                        >
+                                            {productSaving ? "Saving..." : "✅ Add Product"}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Manage Products Sub-Tab */}
+                        {productCategorySubTab === "manageProducts" && (
+                            <div>
+                                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: "20px" }}>
+                                    {products.length === 0 ? (
+                                        <div style={{
+                                            gridColumn: "1 / -1",
+                                            backgroundColor: "white",
+                                            padding: "60px 40px",
+                                            borderRadius: "16px",
+                                            border: "2px dashed #e2e8f0",
+                                            textAlign: "center"
+                                        }}>
+                                            <div style={{ fontSize: "48px", marginBottom: "16px" }}>📦</div>
+                                            <h3 style={{ fontSize: "18px", fontWeight: "600", color: "#0f172a", marginBottom: "8px" }}>No Products Yet</h3>
+                                            <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "20px" }}>Add your first product to showcase to buyers</p>
+                                            <button
+                                                onClick={() => setProductCategorySubTab("addProduct")}
+                                                style={{
+                                                    padding: "12px 24px",
+                                                    backgroundColor: "#3b82f6",
+                                                    color: "white",
+                                                    border: "none",
+                                                    borderRadius: "8px",
+                                                    fontSize: "14px",
+                                                    fontWeight: "500",
+                                                    cursor: "pointer"
+                                                }}
+                                            >
+                                                Add Your First Product
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        products.map((product) => (
+                                            <div key={product.id} style={{
+                                                backgroundColor: "white",
+                                                borderRadius: "12px",
+                                                border: "1px solid #e2e8f0",
+                                                overflow: "hidden"
+                                            }}>
+                                                <div style={{
+                                                    height: "160px",
+                                                    backgroundColor: "#f1f5f9",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center"
+                                                }}>
+                                                    {product.images && product.images[0] ? (
+                                                        <img src={product.images[0]} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                                    ) : (
+                                                        <span style={{ fontSize: "40px" }}>📦</span>
+                                                    )}
+                                                </div>
+                                                <div style={{ padding: "16px" }}>
+                                                    <h4 style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a", marginBottom: "4px" }}>{product.name}</h4>
+                                                    <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "8px" }}>{product.category}</p>
+                                                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", marginBottom: "12px" }}>
+                                                        <span style={{ color: "#64748b" }}>MOQ: {product.moq}</span>
+                                                        <span style={{ fontWeight: "600", color: "#22c55e" }}>{product.priceRange || product.price}</span>
+                                                    </div>
+                                                    <div style={{ display: "flex", gap: "8px" }}>
+                                                        <button
+                                                            onClick={() => handleEditProduct(product)}
+                                                            style={{
+                                                                flex: 1,
+                                                                padding: "8px",
+                                                                backgroundColor: "#f1f5f9",
+                                                                color: "#0f172a",
+                                                                border: "none",
+                                                                borderRadius: "6px",
+                                                                fontSize: "12px",
+                                                                fontWeight: "500",
+                                                                cursor: "pointer",
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
+                                                                gap: "4px"
+                                                            }}
+                                                        >
+                                                            ✏️ Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteProduct(product.id)}
+                                                            style={{
+                                                                flex: 1,
+                                                                padding: "8px",
+                                                                backgroundColor: "#fef2f2",
+                                                                color: "#dc2626",
+                                                                border: "none",
+                                                                borderRadius: "6px",
+                                                                fontSize: "12px",
+                                                                fontWeight: "500",
+                                                                cursor: "pointer",
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
+                                                                gap: "4px"
+                                                            }}
+                                                        >
+                                                            🗑️ Delete
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Add Category Sub-Tab */}
+                        {productCategorySubTab === "addCategory" && (
+                            <div style={{ backgroundColor: "white", padding: "24px", borderRadius: "16px", border: "1px solid #e2e8f0" }}>
+                                <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#0f172a", marginBottom: "20px" }}>
+                                    Request New Category
+                                </h2>
+
+                                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                                    <div>
+                                        <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "8px" }}>
+                                            Select Category *
+                                        </label>
+                                        <select
+                                            value={categoryForm.categoryId}
+                                            onChange={(e) => setCategoryForm({ ...categoryForm, categoryId: e.target.value })}
+                                            style={{
+                                                width: "100%",
+                                                padding: "12px",
+                                                border: "1px solid #e2e8f0",
+                                                borderRadius: "8px",
+                                                fontSize: "14px",
+                                                color: "#0f172a",
+                                                backgroundColor: "#ffffff"
+                                            }}
+                                        >
+                                            <option value="">Choose a category...</option>
+                                            {categoryTemplates.map((cat) => (
+                                                <option key={cat.id} value={cat.id}>
+                                                    {cat.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "8px" }}>
+                                            Description (Optional)
+                                        </label>
+                                        <textarea
+                                            value={categoryForm.description}
+                                            onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                                            placeholder="Describe what products you'll add in this category..."
+                                            rows={3}
+                                            style={{
+                                                width: "100%",
+                                                padding: "12px",
+                                                border: "1px solid #e2e8f0",
+                                                borderRadius: "8px",
+                                                fontSize: "14px",
+                                                color: "#0f172a",
+                                                backgroundColor: "#ffffff",
+                                                resize: "vertical"
+                                            }}
+                                        />
+                                    </div>
+
+                                    <p style={{ fontSize: "12px", color: "#f59e0b" }}>
+                                        ⚠️ New category requests require admin approval. You'll be notified once approved.
+                                    </p>
+
                                     <button
-                                        onClick={() => setShowAddProductModal(true)}
+                                        onClick={handleRequestCategory}
+                                        disabled={categorySaving}
                                         style={{
+                                            alignSelf: "flex-start",
                                             padding: "12px 24px",
-                                            backgroundColor: "#3b82f6",
+                                            backgroundColor: categorySaving ? "#94a3b8" : "#3b82f6",
                                             color: "white",
                                             border: "none",
                                             borderRadius: "8px",
                                             fontSize: "14px",
                                             fontWeight: "500",
-                                            cursor: "pointer"
+                                            cursor: categorySaving ? "not-allowed" : "pointer"
                                         }}
                                     >
-                                        Add Your First Product
+                                        {categorySaving ? "Requesting..." : "Request Category"}
                                     </button>
                                 </div>
-                            ) : (
-                                products.map((product) => (
-                                    <div key={product.id} style={{
-                                        backgroundColor: "white",
-                                        borderRadius: "12px",
-                                        border: "1px solid #e2e8f0",
-                                        overflow: "hidden"
-                                    }}>
-                                        <div style={{
-                                            height: "160px",
-                                            backgroundColor: "#f1f5f9",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center"
-                                        }}>
-                                            {product.images && product.images[0] ? (
-                                                <img src={product.images[0]} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                            ) : (
-                                                <span style={{ fontSize: "40px" }}>📦</span>
-                                            )}
-                                        </div>
-                                        <div style={{ padding: "16px" }}>
-                                            <h4 style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a", marginBottom: "4px" }}>{product.name}</h4>
-                                            <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "8px" }}>{product.category}</p>
-                                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", marginBottom: "12px" }}>
-                                                <span style={{ color: "#64748b" }}>MOQ: {product.moq}</span>
-                                                <span style={{ fontWeight: "600", color: "#22c55e" }}>{product.priceRange}</span>
-                                            </div>
-                                            <div style={{ display: "flex", gap: "8px" }}>
+                            </div>
+                        )}
+
+                        {/* Manage Categories Sub-Tab */}
+                        {productCategorySubTab === "manageCategories" && (
+                            <div style={{ backgroundColor: "white", padding: "24px", borderRadius: "16px", border: "1px solid #e2e8f0" }}>
+                                <h2 style={{ fontSize: "18px", fontWeight: "600", color: "#0f172a", marginBottom: "20px" }}>
+                                    Your Categories
+                                </h2>
+
+                                {supplierCategories.length === 0 ? (
+                                    <div style={{ textAlign: "center", padding: "40px 20px" }}>
+                                        <div style={{ fontSize: "48px", marginBottom: "16px" }}>📂</div>
+                                        <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a", marginBottom: "8px" }}>No Categories Yet</h3>
+                                        <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "20px" }}>Request your first category to start adding products</p>
+                                        <button
+                                            onClick={() => setProductCategorySubTab("addCategory")}
+                                            style={{
+                                                padding: "12px 24px",
+                                                backgroundColor: "#3b82f6",
+                                                color: "white",
+                                                border: "none",
+                                                borderRadius: "8px",
+                                                fontSize: "14px",
+                                                fontWeight: "500",
+                                                cursor: "pointer"
+                                            }}
+                                        >
+                                            Add Your First Category
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                                        {supplierCategories.map((cat) => (
+                                            <div key={cat.id} style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                padding: "16px",
+                                                backgroundColor: "#f8fafc",
+                                                borderRadius: "12px",
+                                                border: "1px solid #e2e8f0"
+                                            }}>
+                                                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                                    <span style={{ fontSize: "24px" }}>📦</span>
+                                                    <div>
+                                                        <h4 style={{ fontSize: "14px", fontWeight: "600", color: "#0f172a" }}>
+                                                            {cat.categoryTemplate?.name || "Unknown Category"}
+                                                        </h4>
+                                                        <span style={{
+                                                            display: "inline-block",
+                                                            marginTop: "4px",
+                                                            padding: "2px 8px",
+                                                            fontSize: "11px",
+                                                            fontWeight: "500",
+                                                            borderRadius: "12px",
+                                                            backgroundColor: cat.status === "approved" ? "#dcfce7" : cat.status === "pending" ? "#fef3c7" : "#fef2f2",
+                                                            color: cat.status === "approved" ? "#15803d" : cat.status === "pending" ? "#b45309" : "#dc2626"
+                                                        }}>
+                                                            {cat.status.toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                                 <button
-                                                    onClick={() => handleEditProduct(product)}
+                                                    onClick={() => handleDeleteCategory(cat.id)}
                                                     style={{
-                                                        flex: 1,
-                                                        padding: "8px",
-                                                        backgroundColor: "#f1f5f9",
-                                                        color: "#0f172a",
-                                                        border: "none",
-                                                        borderRadius: "6px",
-                                                        fontSize: "12px",
-                                                        fontWeight: "500",
-                                                        cursor: "pointer",
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        justifyContent: "center",
-                                                        gap: "4px"
-                                                    }}
-                                                >
-                                                    ✏️ Edit
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteProduct(product.id)}
-                                                    style={{
-                                                        flex: 1,
-                                                        padding: "8px",
+                                                        padding: "8px 16px",
                                                         backgroundColor: "#fef2f2",
                                                         color: "#dc2626",
                                                         border: "none",
                                                         borderRadius: "6px",
                                                         fontSize: "12px",
                                                         fontWeight: "500",
-                                                        cursor: "pointer",
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        justifyContent: "center",
-                                                        gap: "4px"
+                                                        cursor: "pointer"
                                                     }}
                                                 >
                                                     🗑️ Delete
                                                 </button>
                                             </div>
-                                        </div>
+                                        ))}
                                     </div>
-                                ))
-                            )}
-                        </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )
                 }

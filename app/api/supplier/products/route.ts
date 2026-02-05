@@ -34,10 +34,31 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        const { searchParams } = new URL(request.url);
+        const categoryId = searchParams.get("categoryId");
+
+        const where: any = {
+            supplierId,
+            isActive: true
+        };
+
+        if (categoryId) {
+            where.supplierCategoryId = categoryId;
+        }
+
         const products = await prisma.product.findMany({
-            where: {
-                supplierId,
-                isActive: true
+            where,
+            include: {
+                supplierCategory: {
+                    include: {
+                        categoryTemplate: {
+                            select: {
+                                name: true,
+                                slug: true
+                            }
+                        }
+                    }
+                }
             },
             orderBy: {
                 createdAt: "desc"
@@ -46,7 +67,8 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            products
+            products,
+            count: products.length
         });
     } catch (error) {
         console.error("Failed to fetch products:", error);
@@ -57,7 +79,7 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// POST - Create a new product
+// POST - Create a new product (supports FormData for images)
 export async function POST(request: NextRequest) {
     try {
         const supplierId = await getSupplierFromToken(request);
@@ -69,8 +91,65 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const body = await request.json();
-        const { name, category, description, priceRange, moq, leadTime, images } = body;
+        // Check content type for FormData vs JSON
+        const contentType = request.headers.get("content-type") || "";
+
+        let name: string, description: string | null, price: number | null;
+        let priceUnit: string | null, supplierCategoryId: string | null;
+        let categoryTemplateId: string | null, specifications: any;
+        let images: string[] = [];
+        let category: string | null, priceRange: string | null;
+        let moq: string | null, leadTime: string | null;
+
+        if (contentType.includes("multipart/form-data")) {
+            // Handle FormData (from new Add Product page)
+            const formData = await request.formData();
+
+            name = formData.get("name") as string;
+            description = formData.get("description") as string || null;
+            price = parseFloat(formData.get("price") as string) || null;
+            priceUnit = formData.get("priceUnit") as string || null;
+            supplierCategoryId = formData.get("supplierCategoryId") as string || null;
+            categoryTemplateId = formData.get("categoryTemplateId") as string || null;
+
+            const specificationsStr = formData.get("specifications") as string;
+            try {
+                specifications = JSON.parse(specificationsStr || "{}");
+            } catch {
+                specifications = {};
+            }
+
+            // Handle image uploads (placeholder - need cloud storage in production)
+            for (let i = 0; i < 5; i++) {
+                const file = formData.get(`image_${i}`) as File | null;
+                if (file && file.size > 0) {
+                    images.push(`/uploads/${Date.now()}_${file.name}`);
+                }
+            }
+
+            // Legacy fields
+            category = null;
+            priceRange = null;
+            moq = null;
+            leadTime = null;
+        } else {
+            // Handle JSON (legacy endpoint)
+            const body = await request.json();
+            name = body.name;
+            category = body.category || null;
+            description = body.description || null;
+            priceRange = body.priceRange || null;
+            moq = body.moq || null;
+            leadTime = body.leadTime || null;
+            images = body.images || [];
+
+            // New fields from JSON
+            price = body.price || null;
+            priceUnit = body.priceUnit || null;
+            supplierCategoryId = body.supplierCategoryId || null;
+            categoryTemplateId = body.categoryTemplateId || null;
+            specifications = body.specifications || {};
+        }
 
         if (!name) {
             return NextResponse.json(
@@ -79,16 +158,53 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Verify category ownership if specified
+        if (supplierCategoryId) {
+            const catCheck = await prisma.supplierCategory.findFirst({
+                where: { id: supplierCategoryId, supplierId }
+            });
+
+            if (!catCheck) {
+                return NextResponse.json(
+                    { error: "Category not found" },
+                    { status: 404 }
+                );
+            }
+
+            if (catCheck.status !== "approved") {
+                return NextResponse.json(
+                    { error: "Category is not approved yet" },
+                    { status: 400 }
+                );
+            }
+        }
+
         const product = await prisma.product.create({
             data: {
                 supplierId,
+                supplierCategoryId,
+                categoryTemplateId,
                 name,
-                category: category || null,
-                description: description || null,
-                priceRange: priceRange || null,
-                moq: moq || null,
-                leadTime: leadTime || null,
-                images: images || []
+                description,
+                price,
+                priceUnit,
+                images,
+                specifications,
+                // Legacy fields
+                category,
+                priceRange,
+                moq,
+                leadTime,
+                isActive: true
+            },
+            include: {
+                supplierCategory: {
+                    include: {
+                        categoryTemplate: {
+                            select: { name: true }
+                        }
+                    }
+                }
             }
         });
 
@@ -118,7 +234,7 @@ export async function PUT(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { id, name, category, description, priceRange, moq, leadTime, images, isActive } = body;
+        const { id, name, category, description, priceRange, moq, leadTime, images, isActive, price, priceUnit, specifications } = body;
 
         if (!id) {
             return NextResponse.json(
@@ -149,7 +265,10 @@ export async function PUT(request: NextRequest) {
                 moq: moq !== undefined ? moq : existingProduct.moq,
                 leadTime: leadTime !== undefined ? leadTime : existingProduct.leadTime,
                 images: images !== undefined ? images : existingProduct.images,
-                isActive: isActive !== undefined ? isActive : existingProduct.isActive
+                isActive: isActive !== undefined ? isActive : existingProduct.isActive,
+                price: price !== undefined ? price : existingProduct.price,
+                priceUnit: priceUnit !== undefined ? priceUnit : existingProduct.priceUnit,
+                specifications: specifications !== undefined ? specifications : existingProduct.specifications
             }
         });
 

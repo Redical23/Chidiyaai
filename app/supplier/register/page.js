@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 export default function SupplierRegister() {
@@ -9,41 +9,17 @@ export default function SupplierRegister() {
         email: "",
         phone: "",
         password: "",
-        confirmPassword: "",
-        productCategories: [],
-        otherCategory: "",
-        capacity: "",
-        otherCapacity: "",
-        moq: "",
-        serviceLocation: "",
-        otherLocation: "",
+        location: "",
+        categoryId: "",
+        categoryDescription: "",
     });
     const [step, setStep] = useState(1);
-    const [showOtherCategory, setShowOtherCategory] = useState(false);
-    const [showOtherCapacity, setShowOtherCapacity] = useState(false);
-    const [showOtherLocation, setShowOtherLocation] = useState(false);
+    const [categoryTemplates, setCategoryTemplates] = useState([]);
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [loadingCategories, setLoadingCategories] = useState(true);
 
-    const categories = [
-        "Textiles & Fabrics",
-        "Electronics",
-        "Machinery & Equipment",
-        "Packaging Materials",
-        "Chemicals",
-        "Food & Beverages",
-        "Metals & Minerals",
-        "Plastics",
-        "Other"
-    ];
-
-    const capacityOptions = [
-        "Up to ₹5 Lakh",
-        "₹5 Lakh - ₹25 Lakh",
-        "₹25 Lakh - ₹1 Crore",
-        "₹1 Crore - ₹5 Crore",
-        "₹5 Crore+",
-        "Other"
-    ];
-
+    // Location options
     const locationOptions = [
         "Pan India",
         "Delhi NCR",
@@ -56,60 +32,35 @@ export default function SupplierRegister() {
         "Ahmedabad",
         "Jaipur",
         "Lucknow",
+        "Noida",
+        "Gurugram",
         "North India",
         "South India",
         "West India",
         "East India",
-        "Other"
     ];
+
+    // Fetch category templates
+    useEffect(() => {
+        async function fetchCategories() {
+            try {
+                const res = await fetch("/api/categories/templates");
+                if (res.ok) {
+                    const data = await res.json();
+                    setCategoryTemplates(data.categories || []);
+                }
+            } catch (err) {
+                console.error("Failed to fetch categories:", err);
+            } finally {
+                setLoadingCategories(false);
+            }
+        }
+        fetchCategories();
+    }, []);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
-
-    const handleCategoryToggle = (cat) => {
-        if (cat === "Other") {
-            setShowOtherCategory(!showOtherCategory);
-            if (showOtherCategory) {
-                // Remove Other from categories when hiding
-                setFormData({
-                    ...formData,
-                    productCategories: formData.productCategories.filter(c => c !== "Other"),
-                    otherCategory: ""
-                });
-            }
-            return;
-        }
-        const current = formData.productCategories;
-        if (current.includes(cat)) {
-            setFormData({ ...formData, productCategories: current.filter(c => c !== cat) });
-        } else {
-            setFormData({ ...formData, productCategories: [...current, cat] });
-        }
-    };
-
-    const handleLocationChange = (value) => {
-        if (value === "Other") {
-            setShowOtherLocation(true);
-            setFormData({ ...formData, serviceLocation: "Other" });
-        } else {
-            setShowOtherLocation(false);
-            setFormData({ ...formData, serviceLocation: value, otherLocation: "" });
-        }
-    };
-
-    const handleCapacityChange = (value) => {
-        if (value === "Other") {
-            setShowOtherCapacity(true);
-            setFormData({ ...formData, capacity: "Other" });
-        } else {
-            setShowOtherCapacity(false);
-            setFormData({ ...formData, capacity: value, otherCapacity: "" });
-        }
-    };
-
-    const [error, setError] = useState("");
-    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -117,26 +68,19 @@ export default function SupplierRegister() {
         setError("");
 
         try {
-            // Prepare data for API
-            const submitData = {
-                ...formData,
-                // Convert serviceLocation to string for API
-                serviceLocations: formData.serviceLocation === "Other"
-                    ? formData.otherLocation
-                    : formData.serviceLocation,
-                action: "register"
-            };
-            // Remove frontend-only fields
-            delete submitData.otherCategory;
-            delete submitData.otherCapacity;
-            delete submitData.otherLocation;
-            delete submitData.serviceLocation;
-            delete submitData.confirmPassword;
-
             const res = await fetch("/api/supplier/auth", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(submitData),
+                body: JSON.stringify({
+                    action: "register",
+                    companyName: formData.companyName,
+                    email: formData.email,
+                    phone: formData.phone,
+                    password: formData.password,
+                    location: formData.location,
+                    categoryId: formData.categoryId,
+                    categoryDescription: formData.categoryDescription,
+                }),
             });
 
             const data = await res.json();
@@ -152,6 +96,25 @@ export default function SupplierRegister() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const inputStyle = {
+        width: "100%",
+        padding: "12px",
+        border: "1px solid #e2e8f0",
+        borderRadius: "8px",
+        fontSize: "14px",
+        boxSizing: "border-box",
+        color: "#0f172a",
+        backgroundColor: "white"
+    };
+
+    const labelStyle = {
+        display: "block",
+        fontSize: "14px",
+        fontWeight: "500",
+        color: "#0f172a",
+        marginBottom: "6px"
     };
 
     return (
@@ -188,16 +151,16 @@ export default function SupplierRegister() {
 
                 <form onSubmit={handleSubmit}>
                     {error && (
-                        <div style={{ color: "#ef4444", fontSize: "14px", marginBottom: "16px", textAlign: "center" }}>
+                        <div style={{ color: "#ef4444", fontSize: "14px", marginBottom: "16px", textAlign: "center", padding: "12px", backgroundColor: "#fef2f2", borderRadius: "8px" }}>
                             {error}
                         </div>
                     )}
+
+                    {/* Step 1: Account Information */}
                     {step === 1 && (
                         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                             <div>
-                                <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "6px" }}>
-                                    Company Name *
-                                </label>
+                                <label style={labelStyle}>Company Name *</label>
                                 <input
                                     type="text"
                                     name="companyName"
@@ -205,23 +168,12 @@ export default function SupplierRegister() {
                                     onChange={handleChange}
                                     required
                                     placeholder="Your Company Pvt. Ltd."
-                                    style={{
-                                        width: "100%",
-                                        padding: "12px",
-                                        border: "1px solid #e2e8f0",
-                                        borderRadius: "8px",
-                                        fontSize: "14px",
-                                        boxSizing: "border-box",
-                                        color: "#0f172a",
-                                        backgroundColor: "white"
-                                    }}
+                                    style={inputStyle}
                                 />
                             </div>
 
                             <div>
-                                <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "6px" }}>
-                                    Business Email *
-                                </label>
+                                <label style={labelStyle}>Business Email *</label>
                                 <input
                                     type="email"
                                     name="email"
@@ -229,23 +181,12 @@ export default function SupplierRegister() {
                                     onChange={handleChange}
                                     required
                                     placeholder="contact@yourcompany.com"
-                                    style={{
-                                        width: "100%",
-                                        padding: "12px",
-                                        border: "1px solid #e2e8f0",
-                                        borderRadius: "8px",
-                                        fontSize: "14px",
-                                        boxSizing: "border-box",
-                                        color: "#0f172a",
-                                        backgroundColor: "white"
-                                    }}
+                                    style={inputStyle}
                                 />
                             </div>
 
                             <div>
-                                <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "6px" }}>
-                                    Phone Number *
-                                </label>
+                                <label style={labelStyle}>Phone Number *</label>
                                 <input
                                     type="tel"
                                     name="phone"
@@ -253,23 +194,12 @@ export default function SupplierRegister() {
                                     onChange={handleChange}
                                     required
                                     placeholder="+91 98765 43210"
-                                    style={{
-                                        width: "100%",
-                                        padding: "12px",
-                                        border: "1px solid #e2e8f0",
-                                        borderRadius: "8px",
-                                        fontSize: "14px",
-                                        boxSizing: "border-box",
-                                        color: "#0f172a",
-                                        backgroundColor: "white"
-                                    }}
+                                    style={inputStyle}
                                 />
                             </div>
 
                             <div>
-                                <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "6px" }}>
-                                    Password *
-                                </label>
+                                <label style={labelStyle}>Password *</label>
                                 <input
                                     type="password"
                                     name="password"
@@ -277,16 +207,8 @@ export default function SupplierRegister() {
                                     onChange={handleChange}
                                     required
                                     placeholder="••••••••"
-                                    style={{
-                                        width: "100%",
-                                        padding: "12px",
-                                        border: "1px solid #e2e8f0",
-                                        borderRadius: "8px",
-                                        fontSize: "14px",
-                                        boxSizing: "border-box",
-                                        color: "#0f172a",
-                                        backgroundColor: "white"
-                                    }}
+                                    minLength={6}
+                                    style={inputStyle}
                                 />
                             </div>
 
@@ -301,193 +223,82 @@ export default function SupplierRegister() {
                                     color: formData.companyName && formData.email && formData.phone && formData.password ? "white" : "#94a3b8",
                                     border: "none",
                                     borderRadius: "8px",
-                                    fontSize: "16px",
-                                    fontWeight: "500",
+                                    fontWeight: "600",
                                     cursor: formData.companyName && formData.email && formData.phone && formData.password ? "pointer" : "not-allowed",
-                                    marginTop: "12px"
+                                    marginTop: "10px"
                                 }}
                             >
                                 Continue
                             </button>
-
-                            <Link
-                                href="/"
-                                style={{
-                                    display: "block",
-                                    textAlign: "center",
-                                    marginTop: "16px",
-                                    fontSize: "14px",
-                                    color: "#64748b",
-                                    textDecoration: "none"
-                                }}
-                            >
-                                ← Back to Home
-                            </Link>
                         </div>
                     )}
 
+                    {/* Step 2: Business Information (Simplified) */}
                     {step === 2 && (
                         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                             <div>
-                                <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "12px" }}>
-                                    Product Categories *
-                                </label>
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                                    {categories.map((cat) => (
-                                        <button
-                                            key={cat}
-                                            type="button"
-                                            onClick={() => handleCategoryToggle(cat)}
-                                            style={{
-                                                padding: "8px 16px",
-                                                borderRadius: "20px",
-                                                border: formData.productCategories.includes(cat) ? "2px solid #3b82f6" : "1px solid #e2e8f0",
-                                                backgroundColor: formData.productCategories.includes(cat) ? "#eff6ff" : "white",
-                                                color: formData.productCategories.includes(cat) ? "#3b82f6" : "#64748b",
-                                                fontSize: "13px",
-                                                cursor: "pointer"
-                                            }}
-                                        >
-                                            {cat}
-                                        </button>
-                                    ))}
-                                </div>
-                                {showOtherCategory && (
-                                    <input
-                                        type="text"
-                                        name="otherCategory"
-                                        value={formData.otherCategory}
-                                        onChange={handleChange}
-                                        placeholder="Specify your category..."
-                                        style={{
-                                            width: "100%",
-                                            padding: "12px",
-                                            border: "1px solid #3b82f6",
-                                            borderRadius: "8px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                            marginTop: "12px",
-                                            color: "#0f172a",
-                                            backgroundColor: "white"
-                                        }}
-                                    />
-                                )}
-                            </div>
-
-                            <div>
-                                <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "6px" }}>
-                                    Monthly Capacity
-                                </label>
+                                <label style={labelStyle}>Business Location *</label>
                                 <select
-                                    name="capacity"
-                                    value={formData.capacity}
-                                    onChange={(e) => handleCapacityChange(e.target.value)}
-                                    style={{
-                                        width: "100%",
-                                        padding: "12px",
-                                        border: "1px solid #e2e8f0",
-                                        borderRadius: "8px",
-                                        fontSize: "14px",
-                                        backgroundColor: "white",
-                                        color: "#0f172a"
-                                    }}
-                                >
-                                    <option value="">Select capacity</option>
-                                    {capacityOptions.map((opt) => (
-                                        <option key={opt} value={opt}>{opt}</option>
-                                    ))}
-                                </select>
-                                {showOtherCapacity && (
-                                    <input
-                                        type="text"
-                                        name="otherCapacity"
-                                        value={formData.otherCapacity}
-                                        onChange={handleChange}
-                                        placeholder="Specify your monthly capacity..."
-                                        style={{
-                                            width: "100%",
-                                            padding: "12px",
-                                            border: "1px solid #3b82f6",
-                                            borderRadius: "8px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                            marginTop: "12px",
-                                            color: "#0f172a",
-                                            backgroundColor: "white"
-                                        }}
-                                    />
-                                )}
-                            </div>
-
-                            <div>
-                                <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "6px" }}>
-                                    Minimum Order Quantity (MOQ)
-                                </label>
-                                <input
-                                    type="text"
-                                    name="moq"
-                                    value={formData.moq}
+                                    name="location"
+                                    value={formData.location}
                                     onChange={handleChange}
-                                    placeholder="e.g., 100 units, ₹10,000"
-                                    style={{
-                                        width: "100%",
-                                        padding: "12px",
-                                        border: "1px solid #e2e8f0",
-                                        borderRadius: "8px",
-                                        fontSize: "14px",
-                                        boxSizing: "border-box",
-                                        color: "#0f172a",
-                                        backgroundColor: "white"
-                                    }}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{ display: "block", fontSize: "14px", fontWeight: "500", color: "#0f172a", marginBottom: "6px" }}>
-                                    Service Location *
-                                </label>
-                                <select
-                                    name="serviceLocation"
-                                    value={formData.serviceLocation}
-                                    onChange={(e) => handleLocationChange(e.target.value)}
-                                    style={{
-                                        width: "100%",
-                                        padding: "12px",
-                                        border: "1px solid #e2e8f0",
-                                        borderRadius: "8px",
-                                        fontSize: "14px",
-                                        backgroundColor: "white",
-                                        color: "#0f172a"
-                                    }}
+                                    required
+                                    style={{ ...inputStyle, cursor: "pointer" }}
                                 >
-                                    <option value="">Select location</option>
-                                    {locationOptions.map((loc) => (
+                                    <option value="">Select your location</option>
+                                    {locationOptions.map(loc => (
                                         <option key={loc} value={loc}>{loc}</option>
                                     ))}
                                 </select>
-                                {showOtherLocation && (
-                                    <input
-                                        type="text"
-                                        name="otherLocation"
-                                        value={formData.otherLocation}
-                                        onChange={handleChange}
-                                        placeholder="Specify your location..."
-                                        style={{
-                                            width: "100%",
-                                            padding: "12px",
-                                            border: "1px solid #3b82f6",
-                                            borderRadius: "8px",
-                                            fontSize: "14px",
-                                            boxSizing: "border-box",
-                                            marginTop: "12px",
-                                            color: "#0f172a",
-                                            backgroundColor: "white"
-                                        }}
-                                    />
-                                )}
+                                <p style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+                                    Where is your business primarily located?
+                                </p>
                             </div>
 
-                            <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
+                            <div>
+                                <label style={labelStyle}>Primary Product Category *</label>
+                                {loadingCategories ? (
+                                    <div style={{ padding: "12px", color: "#64748b", textAlign: "center" }}>
+                                        Loading categories...
+                                    </div>
+                                ) : (
+                                    <select
+                                        name="categoryId"
+                                        value={formData.categoryId}
+                                        onChange={handleChange}
+                                        required
+                                        style={{ ...inputStyle, cursor: "pointer" }}
+                                    >
+                                        <option value="">Select your category</option>
+                                        {categoryTemplates.map(cat => (
+                                            <option key={cat.id} value={cat.id}>
+                                                {cat.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+                                <p style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+                                    You can add more categories after registration
+                                </p>
+                            </div>
+
+                            <div>
+                                <label style={labelStyle}>About Your Products *</label>
+                                <textarea
+                                    name="categoryDescription"
+                                    value={formData.categoryDescription}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="Briefly describe your products (e.g., We manufacture 3-ply corrugated boxes for e-commerce packaging with custom printing options...)"
+                                    rows={4}
+                                    style={{ ...inputStyle, resize: "vertical" }}
+                                />
+                                <p style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+                                    Help buyers understand what you offer
+                                </p>
+                            </div>
+
+                            <div style={{ display: "flex", gap: "12px", marginTop: "10px" }}>
                                 <button
                                     type="button"
                                     onClick={() => setStep(1)}
@@ -498,8 +309,7 @@ export default function SupplierRegister() {
                                         color: "#0f172a",
                                         border: "1px solid #e2e8f0",
                                         borderRadius: "8px",
-                                        fontSize: "16px",
-                                        fontWeight: "500",
+                                        fontWeight: "600",
                                         cursor: "pointer"
                                     }}
                                 >
@@ -507,33 +317,43 @@ export default function SupplierRegister() {
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={formData.productCategories.length === 0}
+                                    disabled={loading || !formData.location || !formData.categoryId || !formData.categoryDescription}
                                     style={{
-                                        flex: 1,
+                                        flex: 2,
                                         padding: "14px",
-                                        backgroundColor: formData.productCategories.length > 0 ? "#0f172a" : "#e2e8f0",
-                                        color: formData.productCategories.length > 0 ? "white" : "#94a3b8",
+                                        backgroundColor: formData.location && formData.categoryId && formData.categoryDescription ? "#3b82f6" : "#e2e8f0",
+                                        color: formData.location && formData.categoryId && formData.categoryDescription ? "white" : "#94a3b8",
                                         border: "none",
                                         borderRadius: "8px",
-                                        fontSize: "16px",
-                                        fontWeight: "500",
-                                        cursor: formData.productCategories.length > 0 ? "pointer" : "not-allowed"
+                                        fontWeight: "600",
+                                        cursor: formData.location && formData.categoryId && formData.categoryDescription ? "pointer" : "not-allowed"
                                     }}
                                 >
-                                    Continue to KYC
+                                    {loading ? "Creating Account..." : "Complete Registration"}
                                 </button>
                             </div>
-
-                            {/* Terms and Privacy Links */}
-                            <p style={{ textAlign: "center", marginTop: "20px", fontSize: "12px", color: "#94a3b8" }}>
-                                By registering, you agree to our{" "}
-                                <Link href="/terms/supplier" style={{ color: "#64748b", textDecoration: "underline" }}>Supplier Terms</Link>
-                                {" "}and{" "}
-                                <Link href="/privacy" style={{ color: "#64748b", textDecoration: "underline" }}>Privacy Policy</Link>
-                            </p>
                         </div>
                     )}
                 </form>
+
+                {/* Info Box */}
+                <div style={{
+                    marginTop: "32px",
+                    padding: "16px",
+                    backgroundColor: "#f0f9ff",
+                    borderRadius: "8px",
+                    border: "1px solid #bae6fd"
+                }}>
+                    <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#0369a1", marginBottom: "8px" }}>
+                        What happens next?
+                    </h3>
+                    <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "13px", color: "#0c4a6e", lineHeight: "1.6" }}>
+                        <li>Verify your email with OTP</li>
+                        <li>Complete KYC verification</li>
+                        <li>Admin reviews your profile</li>
+                        <li>Start adding products once approved!</li>
+                    </ul>
+                </div>
             </main>
         </div>
     );

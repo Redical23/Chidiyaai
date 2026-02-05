@@ -119,32 +119,97 @@ model Supplier {
   quotes            Quote[]
   products          Product[]
   ratings           SupplierRating[]
+  supplierCategories SupplierCategory[]
 
   @@map("suppliers")
 }
 
-model Product {
-  id          String   @id @default(uuid())
-  supplierId  String
-  
-  // Product Details
-  name        String
-  category    String?
-  description String?
-  priceRange  String?
-  moq         String?
-  leadTime    String?
-  images      String[] // Array of image URLs
-  
-  // Status
-  isActive    Boolean  @default(true)
-  
-  // Timestamps
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// ============================================
+// CATEGORY TEMPLATE (Master categories with specifications)
+// ============================================
+
+model CategoryTemplate {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  slug            String   @unique
+  description     String?
+  image           String?
+  specifications  Json     // Array of spec definitions with options
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // Relations
-  supplier    Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierCategories SupplierCategory[]
+  products           Product[]
+
+  @@map("category_templates")
+}
+
+// ============================================
+// SUPPLIER CATEGORY (Links supplier to categories)
+// ============================================
+
+model SupplierCategory {
+  id                String   @id @default(uuid())
+  supplierId        String
+  categoryTemplateId String?  // Links to CategoryTemplate if exists
+  
+  // For custom category requests
+  customName        String?
+  customDescription String?
+  customImage       String?
+  
+  // Status
+  status            String   @default("pending") // pending, approved, rejected
+  isPrimary         Boolean  @default(false)     // Is this the primary category
+  createdAt         DateTime @default(now())
+  approvedAt        DateTime?
+
+  // Relations
+  supplier          Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  categoryTemplate  CategoryTemplate? @relation(fields: [categoryTemplateId], references: [id])
+  products          Product[]
+
+  @@unique([supplierId, categoryTemplateId])
+  @@map("supplier_categories")
+}
+
+model Product {
+  id                  String   @id @default(uuid())
+  supplierId          String
+  supplierCategoryId  String?
+  categoryTemplateId  String?
+  
+  // Basic Details
+  name                String
+  description         String?
+  price               Float?
+  priceUnit           String?  // per Piece, Pack, Kg, Meter, etc.
+  
+  // Images (up to 5)
+  images              String[]
+  
+  // Specifications (JSON based on category template)
+  specifications      Json?
+  
+  // Legacy fields (for backward compatibility)
+  category            String?
+  priceRange          String?
+  moq                 String?
+  leadTime            String?
+  
+  // Status
+  isActive            Boolean  @default(true)
+  
+  // Timestamps
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  supplier            Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierCategory    SupplierCategory? @relation(fields: [supplierCategoryId], references: [id])
+  categoryTemplate    CategoryTemplate? @relation(fields: [categoryTemplateId], references: [id])
 
   @@map("products")
 }
