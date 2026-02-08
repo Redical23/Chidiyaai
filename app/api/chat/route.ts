@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateChatResponse, shouldFetchSuppliers, ChatMessage, UserRequirements } from "@/lib/gemini";
+import {
+    generateChatResponse,
+    shouldFetchSuppliers,
+    ChatMessage,
+    UserRequirements,
+    CategoryContext,
+    CategorySpec,
+    extractProvidedSpecs,
+    matchCategory,
+    getMissingSpecs
+} from "@/lib/gemini";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 
@@ -21,41 +31,20 @@ interface SupplierResult {
     priceUnit: string;
 }
 
-// Category-specific follow-up questions for AI to ask
-const categoryFollowUps: Record<string, string[]> = {
-    "paper cup": ["65ml", "90ml", "120ml", "150ml", "200ml", "250ml"],
-    "cup": ["65ml", "90ml", "120ml", "150ml", "200ml", "250ml"],
-    "box": ["3-ply", "5-ply", "7-ply", "single wall", "double wall"],
-    "corrugated": ["3-ply", "5-ply", "7-ply", "single wall", "double wall"],
-    "tape": ["40 micron", "45 micron", "50 micron", "transparent", "brown"],
-    "bopp": ["40 micron", "45 micron", "50 micron", "transparent", "brown"],
-    "bubble wrap": ["10mm", "20mm", "30mm", "small bubble", "large bubble"],
-    "polythene": ["LDPE", "HDPE", "PP", "food grade", "industrial"],
-    "bag": ["plain", "printed", "gusseted", "flat", "courier bag"],
-};
-
-function getCategoryFollowUp(message: string): string | null {
-    const lowerMessage = message.toLowerCase();
-    for (const [category, options] of Object.entries(categoryFollowUps)) {
-        if (lowerMessage.includes(category)) {
-            return `Great choice! For ${category}, which size/type do you prefer?\n\nOptions: ${options.join(", ")}\n\nOr let me know your exact specifications!`;
-        }
-    }
-    return null;
-}
-
+// Calculate match score based on requirements
 function calculateMatchScore(supplier: {
     city?: string | null;
     productCategories: string[];
     badges: string[];
-}, requirements: UserRequirements | undefined): number {
+}, requirements: UserRequirements | undefined, matchedCategory?: CategoryContext): number {
     let score = 50; // Base score for approved suppliers
 
     // Category match - most important (+30)
-    if (requirements?.category) {
+    if (requirements?.category || matchedCategory) {
+        const categoryName = matchedCategory?.name || requirements?.category || "";
         const hasCategory = supplier.productCategories?.some(cat =>
-            cat.toLowerCase().includes(requirements.category!.toLowerCase()) ||
-            requirements.category!.toLowerCase().includes(cat.toLowerCase())
+            cat.toLowerCase().includes(categoryName.toLowerCase()) ||
+            categoryName.toLowerCase().includes(cat.toLowerCase())
         );
         if (hasCategory) score += 30;
     }
@@ -105,8 +94,6 @@ export async function POST(request: NextRequest) {
                 where: { email: session.user.email },
             });
             buyerId = buyer?.id || null;
-            // Check if buyer is subscribed and subscription hasn't expired
-            // Using type assertion since fields were just added to schema
             const buyerAny = buyer as { isSubscribed?: boolean; subscriptionExpiry?: Date } | null;
             if (buyerAny?.isSubscribed && buyerAny?.subscriptionExpiry && buyerAny.subscriptionExpiry > new Date()) {
                 isSubscribed = true;
@@ -121,9 +108,7 @@ export async function POST(request: NextRequest) {
             const queriesToday = await prisma.chatSession.count({
                 where: {
                     buyerId,
-                    createdAt: {
-                        gte: today,
-                    },
+                    createdAt: { gte: today },
                 },
             });
 
@@ -138,21 +123,56 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // Fetch category templates from database for smart matching
+        const categoryTemplates = await prisma.categoryTemplate.findMany({
+            where: { isActive: true },
+            select: {
+                id: true,
+                name: true,
+                slug: true,
+                description: true,
+                specifications: true,
+                commonNames: true,
+            },
+        });
+
+        // Convert DB data to CategoryContext format
+        const categories: CategoryContext[] = categoryTemplates.map(cat => ({
+            name: cat.name,
+            slug: cat.slug,
+            description: cat.description || undefined,
+            commonNames: cat.commonNames || [],
+            specifications: (cat.specifications as unknown as CategorySpec[]) || [],
+        }));
+
+        // Match user's message to a category
+        const fullConversation = conversationHistory.map(m => m.content).join(" ") + " " + message;
+        const matchedCategory = matchCategory(fullConversation, categories);
+
+        // Extract specifications user has already provided
+        let providedSpecs: { key: string; value: string }[] = [];
+        let missingSpecs: CategorySpec[] = [];
+
+        if (matchedCategory) {
+            providedSpecs = extractProvidedSpecs(fullConversation, matchedCategory.specifications);
+            missingSpecs = getMissingSpecs(providedSpecs, matchedCategory.specifications);
+        }
+
         let supplierData: string | undefined;
         let suppliers: SupplierResult[] = [];
-        let categoryFollowUp: string | null = null;
 
         // Check if we should fetch suppliers from database
-        if (shouldFetchSuppliers(messageCount, message)) {
+        if (shouldFetchSuppliers(messageCount, message, providedSpecs, missingSpecs)) {
             try {
-                // Build query based on user requirements
+                // Build query based on user requirements and matched category
                 const whereClause: Record<string, unknown> = {
                     status: "approved",
                 };
 
-                if (userRequirements?.category) {
+                const categoryName = matchedCategory?.name || userRequirements?.category;
+                if (categoryName) {
                     whereClause.productCategories = {
-                        hasSome: [userRequirements.category],
+                        hasSome: [categoryName],
                     };
                 }
 
@@ -163,7 +183,7 @@ export async function POST(request: NextRequest) {
                     };
                 }
 
-                // Start both queries in parallel (async-parallel pattern)
+                // Fetch suppliers with their products
                 const [exactMatchPromise, broadMatchPromise] = [
                     prisma.supplier.findMany({
                         where: whereClause,
@@ -179,9 +199,17 @@ export async function POST(request: NextRequest) {
                             badges: true,
                             phone: true,
                             description: true,
+                            products: {
+                                where: { isActive: true },
+                                take: 5,
+                                select: {
+                                    price: true,
+                                    priceUnit: true,
+                                    moq: true,
+                                },
+                            },
                         },
                     }),
-                    // Only run broad search - results used conditionally
                     prisma.supplier.findMany({
                         where: { status: "approved" },
                         take: 10,
@@ -195,26 +223,37 @@ export async function POST(request: NextRequest) {
                             badges: true,
                             phone: true,
                             description: true,
+                            products: {
+                                where: { isActive: true },
+                                take: 5,
+                                select: {
+                                    price: true,
+                                    priceUnit: true,
+                                    moq: true,
+                                },
+                            },
                         },
                     }),
                 ];
 
-                // Await exact match first
                 const dbSuppliers = await exactMatchPromise;
-
-                // Use broad search results only if no exact match
                 const rawSuppliers = dbSuppliers.length > 0
                     ? dbSuppliers
-                    : (userRequirements?.category ? await broadMatchPromise : []);
+                    : (categoryName ? await broadMatchPromise : []);
 
-                // Map supplier data with rating, price, MOQ - sorted by matchScore, rating, then price
+                // Map supplier data with actual pricing from products
                 suppliers = rawSuppliers
                     .map(s => {
-                        const matchScore = calculateMatchScore(s, userRequirements);
-                        // Generate rating between 3.5-5,higher for better match
+                        const matchScore = calculateMatchScore(s, userRequirements, matchedCategory ?? undefined);
                         const rating = Math.min(5, 3.5 + (matchScore / 66));
-                        // Generate realistic price (₹1-50 per piece)
-                        const basePrice = Math.floor(Math.random() * 40) + 5;
+
+                        // Get actual price from products if available
+                        const productWithPrice = s.products.find(p => p.price);
+                        const price = productWithPrice?.price
+                            ? `₹${productWithPrice.price}`
+                            : `₹${Math.floor(Math.random() * 40) + 5}`;
+                        const priceUnit = productWithPrice?.priceUnit || "piece";
+                        const moq = productWithPrice?.moq || s.moq || `${(Math.floor(Math.random() * 10) + 1) * 100} pcs`;
 
                         return {
                             id: s.id,
@@ -222,17 +261,16 @@ export async function POST(request: NextRequest) {
                             city: s.city || "India",
                             state: s.state || undefined,
                             productCategories: s.productCategories,
-                            moq: s.moq || `${(Math.floor(Math.random() * 10) + 1) * 100} pcs`,
+                            moq,
                             badges: s.badges,
                             phone: s.phone || undefined,
                             description: s.description || undefined,
                             matchScore,
                             rating: Math.round(rating * 10) / 10,
-                            price: `₹${basePrice}`,
-                            priceUnit: "piece",
+                            price,
+                            priceUnit,
                         };
                     })
-                    // Sort by: matchScore (desc), rating (desc), then price (asc where lower is better)
                     .sort((a, b) => {
                         if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
                         if (b.rating !== a.rating) return b.rating - a.rating;
@@ -242,41 +280,38 @@ export async function POST(request: NextRequest) {
                     })
                     .slice(0, 5);
 
-                // Build supplier data string with rating, price, MOQ
                 if (suppliers.length > 0) {
                     supplierData = suppliers.map((s, index) =>
-                        `${index + 1}. ${s.companyName} – Rating ${s.rating}⭐ – Price ${s.price}/${s.priceUnit} (MOQ: ${s.moq})`
+                        `${index + 1}. ${s.companyName} – ${s.city} – ${s.badges.join(", ")}`
                     ).join("\n");
-
-                    // Get category-specific follow-up question
-                    categoryFollowUp = getCategoryFollowUp(message);
                 }
             } catch (dbError) {
                 console.error("Database query error:", dbError);
             }
         }
 
-        // Generate AI response
+        // Generate AI response with category context
         const aiResponse = await generateChatResponse(
             message,
             conversationHistory,
             userRequirements,
-            supplierData
+            supplierData,
+            {
+                categories,
+                matchedCategory: matchedCategory ?? undefined,
+                providedSpecs,
+                missingSpecs,
+            }
         );
-
-        // Append category-specific follow-up if we have suppliers
-        let finalResponse = aiResponse;
-        if (suppliers.length > 0 && categoryFollowUp) {
-            finalResponse += `\n\n${categoryFollowUp}`;
-        } else if (suppliers.length > 0) {
-            finalResponse += "\n\nWould you like me to find more suppliers or help you refine your search? I can also help with:\n• Different sizes or specifications\n• More suppliers from nearby areas\n• Bulk order discounts";
-        }
 
         return NextResponse.json({
             success: true,
-            response: finalResponse,
+            response: aiResponse,
             hasSuppliers: suppliers.length > 0,
             suppliers: suppliers.length > 0 ? suppliers : undefined,
+            matchedCategory: matchedCategory?.name,
+            providedSpecs,
+            missingSpecs: missingSpecs.map(s => s.name),
         });
     } catch (error) {
         console.error("Chat API Error:", error);
@@ -286,4 +321,3 @@ export async function POST(request: NextRequest) {
         );
     }
 }
-

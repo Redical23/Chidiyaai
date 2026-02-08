@@ -4,36 +4,6 @@ import { GoogleGenAI } from "@google/genai";
 const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY || "";
 const ai = new GoogleGenAI({ apiKey });
 
-// System prompt for the B2B sourcing assistant
-export const SYSTEM_PROMPT = `You are Chidiya, a friendly B2B packaging sourcing assistant for India.
-
-IMPORTANT RULES:
-- Keep responses SHORT (1-2 sentences max)
-- DO NOT use markdown formatting (no **, no *, no #)
-- Use plain text only
-- Be conversational and warm
-- NEVER list options like "Options: 65ml, 90ml, 120ml..."
-- NEVER say things like "Great choice!" or "Perfect!"
-- DO NOT list suppliers in text - they are shown separately as visual cards
-- DO NOT ask questions the user already answered
-- When suppliers are found, just say you found them and ask if they need help
-
-Your job:
-1. If user gives full details (product, size, quantity), say you're finding suppliers
-2. If details are missing, ask ONE simple question
-3. When suppliers are found, say "I found some suppliers for you!" and ask if they need anything else
-4. NEVER list suppliers - the UI shows cards
-
-Examples of GOOD responses:
-- "What size paper cups do you need?"
-- "How many do you need?"
-- "I found some suppliers for you! Need help with anything else?"
-
-Examples of BAD responses (NEVER do these):
-- "Great choice! For paper cup, which size/type do you prefer? Options: 65ml, 90ml..."
-- "Found 3 suppliers: 1. ABC Packaging..."`;
-
-
 // Message history type
 export interface ChatMessage {
     role: "user" | "model";
@@ -48,14 +18,181 @@ export interface UserRequirements {
     budget?: string;
 }
 
-// Generate a response from Gemini
+// Category specification from database
+export interface CategorySpec {
+    name: string;
+    key: string;
+    type: "single" | "multi";
+    important: boolean;
+    options: string[];
+}
+
+// Category context from database
+export interface CategoryContext {
+    name: string;
+    slug: string;
+    description?: string;
+    commonNames: string[];
+    specifications: CategorySpec[];
+}
+
+// Extract specifications that user already provided in their message
+export function extractProvidedSpecs(
+    message: string,
+    categorySpecs: CategorySpec[]
+): { key: string; value: string }[] {
+    const lowerMessage = message.toLowerCase();
+    const providedSpecs: { key: string; value: string }[] = [];
+
+    for (const spec of categorySpecs) {
+        for (const option of spec.options) {
+            // Check if user mentioned this option (or close variant)
+            const optionLower = option.toLowerCase();
+            const optionVariants = [
+                optionLower,
+                optionLower.replace(/\s+/g, ""), // "65 ml" -> "65ml"
+                optionLower.replace(/[()]/g, "").trim(), // Remove parentheses
+            ];
+
+            for (const variant of optionVariants) {
+                if (variant !== "other" && lowerMessage.includes(variant)) {
+                    providedSpecs.push({ key: spec.key, value: option });
+                    break;
+                }
+            }
+        }
+    }
+
+    return providedSpecs;
+}
+
+// Match user message to a category using common names
+export function matchCategory(
+    message: string,
+    categories: CategoryContext[]
+): CategoryContext | null {
+    const lowerMessage = message.toLowerCase();
+
+    for (const category of categories) {
+        // Check category name
+        if (lowerMessage.includes(category.name.toLowerCase())) {
+            return category;
+        }
+
+        // Check common names
+        for (const commonName of category.commonNames || []) {
+            if (lowerMessage.includes(commonName.toLowerCase())) {
+                return category;
+            }
+        }
+
+        // Check slug
+        if (lowerMessage.includes(category.slug.replace(/-/g, " "))) {
+            return category;
+        }
+    }
+
+    return null;
+}
+
+// Get missing important specifications
+export function getMissingSpecs(
+    providedSpecs: { key: string; value: string }[],
+    categorySpecs: CategorySpec[]
+): CategorySpec[] {
+    const providedKeys = new Set(providedSpecs.map(s => s.key));
+
+    return categorySpecs.filter(
+        spec => spec.important && !providedKeys.has(spec.key)
+    );
+}
+
+// Build dynamic system prompt with category context
+export function buildSystemPrompt(
+    categories: CategoryContext[],
+    matchedCategory?: CategoryContext,
+    providedSpecs?: { key: string; value: string }[],
+    missingSpecs?: CategorySpec[]
+): string {
+    let prompt = `You are Chidiya, a friendly B2B sourcing assistant for India.
+
+CRITICAL RULES:
+- Keep responses SHORT (1-2 sentences max)
+- DO NOT use markdown formatting (no **, no *, no #)
+- Use plain text only
+- Be conversational and warm
+- NEVER say things like "Great choice!" or "Perfect!"
+- DO NOT list suppliers in text - they are shown as visual cards
+- DO NOT ask questions the user already answered
+- When suppliers are found, just say you found them
+
+`;
+
+    // Add category knowledge
+    if (categories.length > 0) {
+        prompt += `AVAILABLE CATEGORIES (with common Indian names):\n`;
+        for (const cat of categories.slice(0, 10)) {
+            const names = [cat.name, ...(cat.commonNames || []).slice(0, 3)].join(", ");
+            prompt += `- ${names}\n`;
+        }
+        prompt += "\n";
+    }
+
+    // Add matched category context
+    if (matchedCategory) {
+        prompt += `USER IS ASKING ABOUT: ${matchedCategory.name}\n`;
+
+        if (providedSpecs && providedSpecs.length > 0) {
+            prompt += `ALREADY PROVIDED:\n`;
+            for (const spec of providedSpecs) {
+                prompt += `- ${spec.key}: ${spec.value}\n`;
+            }
+        }
+
+        if (missingSpecs && missingSpecs.length > 0) {
+            const nextSpec = missingSpecs[0];
+            prompt += `\nASK ABOUT THIS NEXT: ${nextSpec.name}\n`;
+            prompt += `Valid options: ${nextSpec.options.slice(0, 5).join(", ")}\n`;
+            prompt += `\nAsk naturally, like: "What ${nextSpec.name.toLowerCase()} do you need?" - DO NOT list all options.\n`;
+        }
+    }
+
+    prompt += `
+Your job:
+1. Identify what product/category user needs
+2. Ask ONE simple question about missing details (size, type, quantity)
+3. When you have enough info, say "Finding suppliers for you..." 
+4. After suppliers are found, ask if they need help refining
+
+NEVER list options like "Options: 65ml, 90ml..." - just ask naturally.`;
+
+    return prompt;
+}
+
+// Generate a response from Gemini with category context
 export async function generateChatResponse(
     userMessage: string,
     conversationHistory: ChatMessage[],
     userRequirements?: UserRequirements,
-    supplierData?: string
+    supplierData?: string,
+    categoryContext?: {
+        categories: CategoryContext[];
+        matchedCategory?: CategoryContext;
+        providedSpecs?: { key: string; value: string }[];
+        missingSpecs?: CategorySpec[];
+    }
 ): Promise<string> {
     try {
+        // Build dynamic system prompt
+        const systemPrompt = categoryContext
+            ? buildSystemPrompt(
+                categoryContext.categories,
+                categoryContext.matchedCategory,
+                categoryContext.providedSpecs,
+                categoryContext.missingSpecs
+            )
+            : buildSystemPrompt([]);
+
         // Build the conversation context
         let contextMessage = "";
 
@@ -71,9 +208,9 @@ export async function generateChatResponse(
             }
         }
 
-        // Add supplier data if available
+        // Add supplier data notification
         if (supplierData) {
-            contextMessage += "\n\n[System: Supplier cards are being displayed separately in the UI. DO NOT list suppliers in your response. Just acknowledge you found suppliers and ask if they need anything else or want to refine their search.]";
+            contextMessage += "\n\n[System: Supplier cards are now displayed in the UI. DO NOT list suppliers. Just acknowledge you found them and ask if user needs to refine their search.]";
         }
 
         // Build the full prompt with history
@@ -81,11 +218,11 @@ export async function generateChatResponse(
             .map((msg) => (msg.role === "user" ? "User" : "Assistant") + ": " + msg.content)
             .join("\n\n");
 
-        const fullPrompt = SYSTEM_PROMPT + contextMessage + "\n\n" +
+        const fullPrompt = systemPrompt + contextMessage + "\n\n" +
             (historyText ? "Previous conversation:\n" + historyText + "\n\n" : "") +
             "User: " + userMessage + "\n\nAssistant:";
 
-        // Call Gemini API with gemini-2.5-flash
+        // Call Gemini API
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: fullPrompt,
@@ -103,7 +240,6 @@ export async function generateChatResponse(
         // Check if it's a rate limit error
         const errorStr = String(error);
         if (errorStr.includes("429") || errorStr.includes("quota")) {
-            // Return a friendly message instead of throwing
             return "I'm experiencing high traffic right now. Please try again in a few seconds. Your request for " +
                 (userRequirements?.category || "packaging products") + " in " +
                 (userRequirements?.location || "your area") + " is noted!";
@@ -114,7 +250,12 @@ export async function generateChatResponse(
 }
 
 // Check if we should fetch suppliers based on conversation
-export function shouldFetchSuppliers(messageCount: number, lastMessage: string): boolean {
+export function shouldFetchSuppliers(
+    messageCount: number,
+    lastMessage: string,
+    providedSpecs?: { key: string; value: string }[],
+    missingImportantSpecs?: CategorySpec[]
+): boolean {
     const lowerMessage = lastMessage.toLowerCase();
 
     // Product keywords that indicate user wants to find suppliers
@@ -129,7 +270,11 @@ export function shouldFetchSuppliers(messageCount: number, lastMessage: string):
     // Always fetch if user mentions a product or quantity
     const hasQuantity = /\d+/.test(lastMessage);
 
-    // Fetch on first message if it contains product info, OR after 2 messages, OR if has trigger phrases
-    return (messageCount >= 1 && (hasProductKeyword || hasQuantity)) || messageCount >= 3;
-}
+    // If we have provided specs and few/no missing important specs, fetch suppliers
+    const hasEnoughSpecs = providedSpecs && providedSpecs.length >= 1 &&
+        (!missingImportantSpecs || missingImportantSpecs.length <= 1);
 
+    // Fetch on first message if it contains product info with specs, OR after 2 messages
+    return (messageCount >= 1 && hasProductKeyword && (hasQuantity || hasEnoughSpecs)) ||
+        messageCount >= 3;
+}

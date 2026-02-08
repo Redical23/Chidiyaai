@@ -855,8 +855,10 @@ To get unlimited searches, subscribe to ChidiyaAI Premium.`,
                                                     supplier={supplier}
                                                     onViewContact={handleViewContact}
                                                     onSave={handleSaveSupplier}
+                                                    contactsRemaining={3 - contactsViewed}
                                                 />
                                             ))}
+
                                         </div>
                                     </div>
                                 )}
