@@ -37,30 +37,38 @@ function calculateMatchScore(supplier: {
     productCategories: string[];
     badges: string[];
 }, requirements: UserRequirements | undefined, matchedCategory?: CategoryContext): number {
-    let score = 50; // Base score for approved suppliers
+    const categoryName = matchedCategory?.name || requirements?.category || "";
 
-    // Category match - most important (+30)
-    if (requirements?.category || matchedCategory) {
-        const categoryName = matchedCategory?.name || requirements?.category || "";
-        const hasCategory = supplier.productCategories?.some(cat =>
-            cat.toLowerCase().includes(categoryName.toLowerCase()) ||
-            categoryName.toLowerCase().includes(cat.toLowerCase())
-        );
-        if (hasCategory) score += 30;
+    // Check if supplier matches the requested category
+    const hasCategory = categoryName ? supplier.productCategories?.some(cat => {
+        const catLower = cat.toLowerCase();
+        const reqLower = categoryName.toLowerCase();
+        // Check for partial matches in both directions
+        return catLower.includes(reqLower) ||
+            reqLower.includes(catLower) ||
+            // Also check common keywords
+            reqLower.split(' ').some(word => word.length > 3 && catLower.includes(word));
+    }) : true;
+
+    // If category doesn't match at all, return 0 - don't show irrelevant suppliers
+    if (categoryName && !hasCategory) {
+        return 0;
     }
 
-    // Location match - important (+20)
+    let score = 60; // Base score for approved suppliers with matching category
+
+    // Location match - important (+25)
     if (requirements?.location && supplier.city) {
         const locationMatch = supplier.city.toLowerCase().includes(requirements.location.toLowerCase()) ||
             requirements.location.toLowerCase().includes(supplier.city.toLowerCase());
-        if (locationMatch) score += 20;
+        if (locationMatch) score += 25;
     }
 
-    // Badges bonus (up to +10)
+    // Badges bonus (up to +15)
     if (supplier.badges) {
-        if (supplier.badges.includes("verified")) score += 3;
-        if (supplier.badges.includes("gst")) score += 3;
-        if (supplier.badges.includes("premium")) score += 4;
+        if (supplier.badges.includes("verified")) score += 5;
+        if (supplier.badges.includes("gst")) score += 5;
+        if (supplier.badges.includes("premium")) score += 5;
     }
 
     return Math.min(score, 100);
@@ -237,9 +245,21 @@ export async function POST(request: NextRequest) {
                 ];
 
                 const dbSuppliers = await exactMatchPromise;
-                const rawSuppliers = dbSuppliers.length > 0
-                    ? dbSuppliers
-                    : (categoryName ? await broadMatchPromise : []);
+                // Combine and deduplicate suppliers
+                const broadSuppliers = await broadMatchPromise;
+                const allSuppliers = dbSuppliers.length > 0 ? dbSuppliers : broadSuppliers;
+
+                // Filter to only include suppliers that actually match the category
+                const rawSuppliers = allSuppliers.filter(s => {
+                    if (!categoryName) return true;
+                    const catLower = categoryName.toLowerCase();
+                    return s.productCategories?.some(pc => {
+                        const pcLower = pc.toLowerCase();
+                        return pcLower.includes(catLower) ||
+                            catLower.includes(pcLower) ||
+                            catLower.split(' ').some(word => word.length > 3 && pcLower.includes(word));
+                    });
+                });
 
                 // Map supplier data with actual pricing from products
                 suppliers = rawSuppliers
@@ -271,6 +291,7 @@ export async function POST(request: NextRequest) {
                             priceUnit,
                         };
                     })
+                    .filter(s => s.matchScore > 0) // Remove suppliers with no category match
                     .sort((a, b) => {
                         if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
                         if (b.rating !== a.rating) return b.rating - a.rating;
