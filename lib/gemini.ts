@@ -66,15 +66,16 @@ export function extractProvidedSpecs(
     return providedSpecs;
 }
 
-// Match user message to a category using common names
+// Match user message to a category using common names and keyword matching
 export function matchCategory(
     message: string,
     categories: CategoryContext[]
 ): CategoryContext | null {
     const lowerMessage = message.toLowerCase();
+    const stopWords = ['and', 'the', 'for', 'raw', 'fabric', 'fabrics', 'materials'];
 
     for (const category of categories) {
-        // Check category name
+        // Check if full category name is in message
         if (lowerMessage.includes(category.name.toLowerCase())) {
             return category;
         }
@@ -89,6 +90,17 @@ export function matchCategory(
         // Check slug
         if (lowerMessage.includes(category.slug.replace(/-/g, " "))) {
             return category;
+        }
+
+        // NEW: Check if any significant keyword from category name appears in message
+        // This allows "polyester" to match "Polyester Fabric"
+        const categoryWords = category.name.toLowerCase().split(' ')
+            .filter(word => word.length > 3 && !stopWords.includes(word));
+
+        for (const word of categoryWords) {
+            if (lowerMessage.includes(word)) {
+                return category;
+            }
         }
     }
 
