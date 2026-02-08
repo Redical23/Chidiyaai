@@ -124,7 +124,8 @@ export function buildSystemPrompt(
     categories: CategoryContext[],
     matchedCategory?: CategoryContext,
     providedSpecs?: { key: string; value: string }[],
-    missingSpecs?: CategorySpec[]
+    missingSpecs?: CategorySpec[],
+    suppliersFound?: boolean
 ): string {
     let prompt = `You are Chidiya, a friendly B2B sourcing assistant for India.
 
@@ -132,51 +133,65 @@ CRITICAL RULES:
 - Keep responses SHORT (1-2 sentences max)
 - DO NOT use markdown formatting (no **, no *, no #)
 - Use plain text only
-- Be conversational and warm
-- NEVER say things like "Great choice!" or "Perfect!"
-- DO NOT list suppliers in text - they are shown as visual cards
+- Be warm but professional
+- DO NOT list suppliers - they appear as visual cards BELOW your message
 - DO NOT ask questions the user already answered
-- When suppliers are found, just say you found them
 
 `;
 
+    // Response structure based on whether suppliers are found
+    if (suppliersFound) {
+        prompt += `RESPONSE STRUCTURE (IMPORTANT):
+When suppliers are found, your message should follow this EXACT format:
+1. First line: Acknowledge what they asked for (e.g., "Found some suppliers for cotton textiles in your area.")
+2. Second line: Brief note that cards are showing below
+3. Third line (optional): Suggest providing more details for better matches
+
+Example good response when suppliers found:
+"Based on your requirements, here are some suppliers for cotton textiles. For more accurate matches, you can specify the type (woven, knitted) or quantity needed."
+
+DO NOT ask "What kind of..." questions BEFORE showing results.
+The question/suggestion should come AFTER acknowledging the results.
+
+`;
+    } else {
+        prompt += `RESPONSE STRUCTURE:
+When no suppliers found or need more info:
+1. Acknowledge what they're looking for
+2. Ask ONE simple clarifying question
+
+Example: "Looking for cotton textiles. Which city are you in?"
+
+`;
+    }
+
     // Add category knowledge
     if (categories.length > 0) {
-        prompt += `AVAILABLE CATEGORIES (with common Indian names):\n`;
-        for (const cat of categories.slice(0, 10)) {
-            const names = [cat.name, ...(cat.commonNames || []).slice(0, 3)].join(", ");
-            prompt += `- ${names}\n`;
+        prompt += `AVAILABLE CATEGORIES:\n`;
+        for (const cat of categories.slice(0, 8)) {
+            prompt += `- ${cat.name}\n`;
         }
         prompt += "\n";
     }
 
     // Add matched category context
     if (matchedCategory) {
-        prompt += `USER IS ASKING ABOUT: ${matchedCategory.name}\n`;
+        prompt += `USER IS LOOKING FOR: ${matchedCategory.name}\n`;
 
         if (providedSpecs && providedSpecs.length > 0) {
-            prompt += `ALREADY PROVIDED:\n`;
-            for (const spec of providedSpecs) {
-                prompt += `- ${spec.key}: ${spec.value}\n`;
-            }
+            prompt += `Details provided: `;
+            prompt += providedSpecs.map(s => `${s.key}=${s.value}`).join(", ");
+            prompt += "\n";
         }
 
-        if (missingSpecs && missingSpecs.length > 0) {
+        if (!suppliersFound && missingSpecs && missingSpecs.length > 0) {
             const nextSpec = missingSpecs[0];
-            prompt += `\nASK ABOUT THIS NEXT: ${nextSpec.name}\n`;
-            prompt += `Valid options: ${nextSpec.options.slice(0, 5).join(", ")}\n`;
-            prompt += `\nAsk naturally, like: "What ${nextSpec.name.toLowerCase()} do you need?" - DO NOT list all options.\n`;
+            prompt += `You may ask about: ${nextSpec.name}\n`;
         }
     }
 
     prompt += `
-Your job:
-1. Identify what product/category user needs
-2. Ask ONE simple question about missing details (size, type, quantity)
-3. When you have enough info, say "Finding suppliers for you..." 
-4. After suppliers are found, ask if they need help refining
-
-NEVER list options like "Options: 65ml, 90ml..." - just ask naturally.`;
+Remember: Supplier cards appear BELOW your text message. Your job is just to acknowledge and guide, not list anything.`;
 
     return prompt;
 }
@@ -195,15 +210,20 @@ export async function generateChatResponse(
     }
 ): Promise<string> {
     try {
+        // Detect if suppliers were found
+        const suppliersFound = !!supplierData && supplierData.length > 0;
+
         // Build dynamic system prompt
         const systemPrompt = categoryContext
             ? buildSystemPrompt(
                 categoryContext.categories,
                 categoryContext.matchedCategory,
                 categoryContext.providedSpecs,
-                categoryContext.missingSpecs
+                categoryContext.missingSpecs,
+                suppliersFound
             )
-            : buildSystemPrompt([]);
+            : buildSystemPrompt([], undefined, undefined, undefined, suppliersFound);
+
 
         // Build the conversation context
         let contextMessage = "";
